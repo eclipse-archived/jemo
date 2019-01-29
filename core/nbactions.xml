@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/*
+********************************************************************************
+* Copyright (c) 9th November 2018 Cloudreach Limited Europe
+*
+* This program and the accompanying materials are made available under the
+* terms of the Eclipse Public License 2.0 which is available at
+* http://www.eclipse.org/legal/epl-2.0.
+*
+* This Source Code may also be made available under the following Secondary
+* Licenses when the conditions for such availability set forth in the Eclipse
+* Public License, v. 2.0 are satisfied: GNU General Public License, version 2
+* with the GNU Classpath Exception which is
+* available at https://www.gnu.org/software/classpath/license.html.
+*
+* SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
+********************************************************************************/ 
+ -->
+<actions>
+        <action>
+            <actionName>run</actionName>
+            <packagings>
+                <packaging>jar</packaging>
+            </packagings>
+            <goals>
+                <goal>process-classes</goal>
+                <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
+            </goals>
+            <properties>
+                <exec.args>-server -XX:+UseGCOverheadLimit -XX:+UseG1GC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -XX:+OptimizeStringConcat -XX:+UseCompressedOops -Xms256m -Xmx256m  -Dcom.cloudreach.x2.cloud=AWS  -Daws.accessKeyId=AKIAIAGA2QTYMFWF2SDQ  -Dcloudreach.connect.logs=true  -Dcloudreach.connect.http.mode=https  -Dcloudreach.connect.plugin.whitelist=3000,20,2 -Dcloudreach.x2.version=2.3 -Dcloudreach.connect.location=CSTURA -Dcom.cloudreach.connect.plugin.whitelist=15 -Daws.secretKey=HqZ4CtQse75o096zoOs+lux1L6FRXI/z9qCBKLyF -Dgraal.CompilationFailureAction=Silent -classpath %classpath com.cloudreach.connect.x2.CC</exec.args>
+                <exec.executable>java</exec.executable>
+            </properties>
+        </action>
+        <action>
+            <actionName>debug</actionName>
+            <packagings>
+                <packaging>jar</packaging>
+            </packagings>
+            <goals>
+                <goal>process-classes</goal>
+                <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
+            </goals>
+            <properties>
+                <exec.args>-Xdebug -Xrunjdwp:transport=dt_socket,server=n,address=${jpda.address} -server -XX:+UseGCOverheadLimit -XX:+UseG1GC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -XX:+OptimizeStringConcat -XX:+UseCompressedOops -Xms256m -Xmx256m  -Dcom.cloudreach.x2.cloud=AWS  -Daws.accessKeyId=AKIAIAGA2QTYMFWF2SDQ  -Dcloudreach.connect.logs=true  -Dcloudreach.connect.http.mode=https  -Dcloudreach.connect.plugin.whitelist=3000,20,2 -Dcloudreach.x2.version=2.3 -Dcloudreach.connect.location=CSTURA -Dcom.cloudreach.connect.plugin.whitelist=15 -Daws.secretKey=HqZ4CtQse75o096zoOs+lux1L6FRXI/z9qCBKLyF -Dgraal.CompilationFailureAction=Silent -classpath %classpath com.cloudreach.connect.x2.CC</exec.args>
+                <exec.executable>java</exec.executable>
+                <jpda.listen>true</jpda.listen>
+            </properties>
+        </action>
+        <action>
+            <actionName>profile</actionName>
+            <packagings>
+                <packaging>jar</packaging>
+            </packagings>
+            <goals>
+                <goal>process-classes</goal>
+                <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
+            </goals>
+            <properties>
+                <exec.args>-server -XX:+UseGCOverheadLimit -XX:+UseG1GC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -XX:+OptimizeStringConcat -XX:+UseCompressedOops -Xms256m -Xmx256m  -Dcom.cloudreach.x2.cloud=AWS  -Daws.accessKeyId=AKIAIAGA2QTYMFWF2SDQ  -Dcloudreach.connect.logs=true  -Dcloudreach.connect.http.mode=https  -Dcloudreach.connect.plugin.whitelist=3000,20,2 -Dcloudreach.x2.version=2.3 -Dcloudreach.connect.location=CSTURA -Dcom.cloudreach.connect.plugin.whitelist=15 -Daws.secretKey=HqZ4CtQse75o096zoOs+lux1L6FRXI/z9qCBKLyF -Dgraal.CompilationFailureAction=Silent -classpath %classpath com.cloudreach.connect.x2.CC</exec.args>
+                <exec.executable>java</exec.executable>
+            </properties>
+        </action>
+        <action>
+            <actionName>build-with-dependencies</actionName>
+            <reactor>also-make</reactor>
+            <packagings>
+                <packaging>*</packaging>
+            </packagings>
+            <goals>
+                <goal>install</goal>
+            </goals>
+        </action>
+    </actions>

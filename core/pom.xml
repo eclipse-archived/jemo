@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/*
+********************************************************************************
+* Copyright (c) 9th November 2018 Cloudreach Limited Europe
+*
+* This program and the accompanying materials are made available under the
+* terms of the Eclipse Public License 2.0 which is available at
+* http://www.eclipse.org/legal/epl-2.0.
+*
+* This Source Code may also be made available under the following Secondary
+* Licenses when the conditions for such availability set forth in the Eclipse
+* Public License, v. 2.0 are satisfied: GNU General Public License, version 2
+* with the GNU Classpath Exception which is
+* available at https://www.gnu.org/software/classpath/license.html.
+*
+* SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
+********************************************************************************/ 
+ -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.cloudreach.connect</groupId>
+    <artifactId>cloudreach-connect-x2</artifactId>
+    <version>2.3</version>
+    <packaging>jar</packaging>
+    
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-bom</artifactId>
+                <version>1.11.365</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    
+    <dependencies>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk</artifactId>
+            <version>1.11.365</version>
+        </dependency>
+				
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>9.4.11.v20180605</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-webapp</artifactId>
+            <version>9.4.11.v20180605</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-servlet</artifactId>
+            <version>9.4.11.v20180605</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-server</artifactId>
+            <version>9.4.11.v20180605</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-client</artifactId>
+            <version>9.4.11.v20180605</version>
+        </dependency>
+				
+				<!-- adding mapdb which will provide large collection processing -->
+				<dependency>
+						<groupId>org.mapdb</groupId>
+						<artifactId>mapdb</artifactId>
+						<version>3.0.5</version>
+				</dependency>
+			 
+			 <!-- include apache POI because it just sucks and therefore has to be loaded in the app server -->
+			 <dependency>
+						<groupId>org.apache.poi</groupId>
+						<artifactId>poi</artifactId>
+						<version>3.15</version>
+				</dependency>
+				<dependency>
+						<groupId>org.apache.poi</groupId>
+						<artifactId>poi-ooxml</artifactId>
+						<version>3.15</version>
+				</dependency>
+				<dependency>
+						<groupId>org.apache.poi</groupId>
+						<artifactId>poi-ooxml-schemas</artifactId>
+						<version>3.15</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.xmlbeans</groupId>
+					<artifactId>xmlbeans</artifactId>
+					<version>2.6.0</version>
+				</dependency>
+				<dependency>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+					<version>1.2</version>
+				</dependency>
+				<dependency>
+					<groupId>commons-codec</groupId>
+					<artifactId>commons-codec</artifactId>
+					<version>1.10</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.commons</groupId>
+					<artifactId>commons-collections4</artifactId>
+					<version>4.1</version>
+				</dependency>
+				<dependency>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-nop</artifactId>
+					<version>1.7.25</version>
+				</dependency>
+				
+				<!-- add dependancies for java mail -->
+				<dependency>
+						<groupId>javax.mail</groupId>
+						<artifactId>javax.mail-api</artifactId>
+						<version>1.5.6</version>
+				</dependency>
+				
+				<dependency>
+						<groupId>javax.activation</groupId>
+						<artifactId>activation</artifactId>
+						<version>1.1.1</version>
+				</dependency>
+				
+				<dependency>
+						<groupId>com.sun.mail</groupId>
+						<artifactId>javax.mail</artifactId>
+						<version>1.5.6</version>
+				</dependency>
+				
+				<!-- add compatibility for jdk9 -->
+				<dependency>
+						<groupId>com.sun.xml.ws</groupId>
+						<artifactId>jaxws-ri</artifactId>
+						<version>2.3.0</version>
+						<type>pom</type>
+				</dependency>
+				<!-- end jdk9 compat libraries -->
+				
+				<!-- add testing dependancies -->
+				<dependency>
+					<groupId>junit</groupId>
+					<artifactId>junit</artifactId>
+					<version>4.11</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>2.21.0</version>
+					<scope>test</scope>
+				</dependency>
+				<!-- end of testing dependancies -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <scope>test</scope>
+            <version>2.44.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.opera</groupId>
+            <artifactId>operadriver</artifactId>
+            <scope>test</scope>
+            <version>1.5</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.seleniumhq.selenium</groupId>
+                    <artifactId>selenium-remote-driver</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+						<!-- add plugin for compiler version 11 -->
+						<plugin>
+								<groupId>org.apache.maven.plugins</groupId>
+								<artifactId>maven-compiler-plugin</artifactId>
+								<version>3.8.0</version>
+								<configuration>
+										<release>11</release>
+								</configuration>
+						</plugin>
+						<plugin>
+								<groupId>org.apache.maven.plugins</groupId>
+								<artifactId>maven-surefire-plugin</artifactId>
+								<version>2.22.0</version>
+								<configuration>
+										<argLine>
+												--illegal-access=permit
+										</argLine>
+								</configuration>
+						</plugin>
+						<plugin>
+								<groupId>org.apache.maven.plugins</groupId>
+								<artifactId>maven-failsafe-plugin</artifactId>
+								<version>2.22.0</version>
+								<configuration>
+										<argLine>
+												--illegal-access=permit
+										</argLine>
+								</configuration>
+						</plugin>
+						<plugin>
+							<groupId>org.jacoco</groupId>
+							<artifactId>jacoco-maven-plugin</artifactId>
+							<version>0.8.2</version>
+							<executions>
+									<execution>
+											<goals>
+													<goal>prepare-agent</goal>
+											</goals>
+									</execution>
+									<execution>
+											<id>report</id>
+											<phase>prepare-package</phase>
+											<goals>
+													<goal>report</goal>
+											</goals>
+									</execution>
+							</executions>
+							<configuration>
+									<excludes>
+											<exclude>json-path-2.2.0.jar</exclude>
+									</excludes>
+							</configuration>
+						</plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+						<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+								<version>3.2.0</version>
+								<configuration>
+										<filters>
+												<filter>
+														<artifact>*:*</artifact>
+														<excludes>
+																<exclude>META-INF/*.SF</exclude>
+																<exclude>META-INF/*.DSA</exclude>
+																<exclude>META-INF/*.RSA</exclude>
+														</excludes>
+												</filter>
+										</filters>
+										<!-- Additional configuration. -->
+								</configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedClassifierName>shaded</shadedClassifierName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
