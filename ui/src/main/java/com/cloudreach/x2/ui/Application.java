@@ -98,7 +98,9 @@ public abstract class Application extends Component implements Module {
 	}
 
 	@Override
-	public double getVersion() { return 1.0; };
+	public double getVersion() { return version; };
+	
+	public int getApplicationId() { return this.id; };
 
 	@Override
 	public CCMessage process(CCMessage message) throws Throwable { return null; }
@@ -236,7 +238,9 @@ public abstract class Application extends Component implements Module {
 				String event = appPath.substring(appPath.lastIndexOf('/')+1);
 				try {
 					Object retval = processEvent(appPath,event, request);
-					getRuntime().store("x2msgpayload", new String(Util.base64(userDataCookie.getValue()), "UTF-8"), getAuthenticatedUser());
+					if(getAuthenticatedUser() != null) {
+						getRuntime().store("x2msgpayload", new String(Util.base64(userDataCookie.getValue()), "UTF-8"), getAuthenticatedUser());
+					}
 					response.addCookie(userDataCookie);
 					if(retval != null) {
 						responseOutput.write(Util.toJSON(retval).getBytes("UTF-8"));
