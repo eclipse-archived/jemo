@@ -18,8 +18,20 @@
 package com.cloudreach.x2.ui.uam.panel;
 
 import com.cloudreach.x2.ui.ApplicationFeature;
+import com.cloudreach.x2.ui.Button;
+import com.cloudreach.x2.ui.OrderDirection;
 import com.cloudreach.x2.ui.Panel;
+import com.cloudreach.x2.ui.Table;
+import com.cloudreach.x2.ui.TableRow;
+import com.cloudreach.x2.ui.view.AreaFormView;
+import com.cloudreach.x2.ui.view.AreaView;
+import com.cloudreach.x2.ui.view.ButtonView;
 import com.cloudreach.x2.ui.view.PanelView;
+import com.cloudreach.x2.ui.view.View;
+import com.cloudreach.x2.ui.view.form.TextView;
+import static com.cloudreach.x2.ui.util.i18n.*;
+import com.cloudreach.x2.ui.view.TableView;
+import java.util.List;
 
 /**
  * this class will implement the user management panel interface.
@@ -41,7 +53,78 @@ public class UserManagementPanel extends Panel {
 		//	- the last time the logged in.
 		//	- a list of the services their security profile allows them to access
 		//	- a list of the services they have accessed including the last time they were accessed.
-		return null;
+		//end users of the service may also want to add user attached functionality to the UI so make sure they can do this.
+		//when we build the SPI we will include a default implementation which will use the default jemo cloud storage through the runtime,
+		//but people may choose to implement the SPI for their specific application which many use a different storage backend.
+		
+		//the initial panel is a table of users with a button on the right hand side to create a new user. Newly created users
+		//will always be pending their first login and will be identified by their e-mail address.
+		AreaView tableAreaContainer = new AreaView(12);
+		tableAreaContainer.addComponent(buildTableArea(feature));
+		
+		PanelView panel = new PanelView(feature.getTitle());
+		panel.addRow()
+				 .addComponent(buildTopArea(feature,tableAreaContainer))
+				 .addComponent(tableAreaContainer);
+		return panel;
 	}
 	
+	/**
+	 * this method will construct a panel view which will display a for containing a button to create / invite new users
+	 * to the application and a search box which will allow users to find specific users in the system.
+	 * 
+	 * @param feature a reference to the application feature from which this panel was triggered
+	 * @return an AreaFormView constructed with the necessary visual components and the correct state.
+	 */
+	protected AreaFormView buildTopArea(ApplicationFeature feature,AreaView targetArea) {
+		AreaFormView view = new AreaFormView(12);
+		view.addComponent(new TextView("search"))
+				.addComponent(new ButtonView(USER_ACCESS_MANAGEMENT.getString("btn.search.title"), targetArea.getId(), Search.class))
+				.addComponent(new ButtonView(USER_ACCESS_MANAGEMENT.getString("btn.newuser.title"), NewUserDialog.class));
+		return view;
+	}
+	
+	protected AreaView buildTableArea(ApplicationFeature feature) {
+		AreaView tableArea = new AreaView(12);
+		TableView userTable = new TableView(UserSPITableController.class);
+		userTable.addColumn("email", USER_ACCESS_MANAGEMENT.getString("tbl.user.email"), true);
+		userTable.addColumn("firstname", USER_ACCESS_MANAGEMENT.getString("tbl.user.firstname"), true);
+		userTable.addColumn("lastname", USER_ACCESS_MANAGEMENT.getString("tbl.user.lastname"), true);
+		userTable.addColumn("groups", USER_ACCESS_MANAGEMENT.getString("tbl.user.groups"), true);
+		userTable.addColumn("active", USER_ACCESS_MANAGEMENT.getString("tbl.user.active"), true);
+		userTable.addColumn("lastlogin", USER_ACCESS_MANAGEMENT.getString("tbl.user.lastlogin"), true);
+		tableArea.addComponent(userTable);
+		return tableArea;
+	}
+	
+	public static class Search extends Button {
+
+		@Override
+		public View onClick(ButtonView view) throws Throwable {
+			throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		}
+		
+	}
+	
+	public static class NewUserDialog extends Button {
+
+		@Override
+		public View onClick(ButtonView view) throws Throwable {
+			throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		}
+		
+	}
+	
+	public static class UserSPITableController extends Table {
+
+		@Override
+		public List<TableRow> onDataPage(int page, int pageSize, String columnOrderBy, OrderDirection orderDirection, TableView view) throws Throwable {
+			throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		}
+
+		@Override
+		public long onDataSize(TableView view) throws Throwable {
+			throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		}
+	}
 }

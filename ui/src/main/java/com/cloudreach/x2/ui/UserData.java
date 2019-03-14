@@ -16,6 +16,7 @@
 ********************************************************************************/
 package com.cloudreach.x2.ui;
 
+import com.cloudreach.connect.x2.internal.model.SystemDBObject;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +28,7 @@ import java.util.Map;
  * 
  * @author christopher stura
  */
-public class UserData {
+public class UserData implements SystemDBObject {
 	private String id = null;
 	private String username = null;
 	private String firstName = null;
@@ -35,6 +36,7 @@ public class UserData {
 	private String message = null;
 	private Map<String,Object> data = new HashMap<>();
 	
+	@Override
 	public String getId() {
 		return id;
 	}

@@ -30,6 +30,8 @@ import static com.cloudreach.x2.ui.util.i18n.*;
  */
 public class UserManagementFeature extends ApplicationFeature {
 	
+	public static UserManagementFeature FEATURE = new UserManagementFeature();
+	
 	public UserManagementFeature() {
 		super(ICON.users, USER_ACCESS_MANAGEMENT.getString("app.users.title"), UserManagementPanel.class);
 	}

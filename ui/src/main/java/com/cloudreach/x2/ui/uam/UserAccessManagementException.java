@@ -15,15 +15,31 @@
 * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
 ********************************************************************************
  */
-package com.cloudreach.x2.ui.util;
+package com.cloudreach.x2.ui.uam;
 
-import java.util.ResourceBundle;
+import com.cloudreach.x2.ui.util.ManagedConsumer;
 
 /**
- * this class will provide a series of constants for working with multi-language applications
+ * this is the base exception which will be used to report any errors throughout the implementation
+ * of the User Access Management platform component.
  * 
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
-public class i18n {
-	public static final ResourceBundle USER_ACCESS_MANAGEMENT = ResourceBundle.getBundle("i18n.UserAccessManagement");
+public class UserAccessManagementException extends Exception {
+	
+	public UserAccessManagementException(String reason,Throwable cause) {
+		super(reason,cause);
+	} 
+	
+	protected UserAccessManagementException(Throwable cause) {
+		super(cause);
+	}
+	
+	public static void wrap(ManagedConsumer<Void> consumer) throws UserAccessManagementException {
+		try {
+			consumer.accept(null);
+		}catch(Throwable ex) {
+			throw new UserAccessManagementException(ex);
+		}
+	}
 }

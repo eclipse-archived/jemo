@@ -17,13 +17,39 @@
  */
 package com.cloudreach.x2.ui.util;
 
-import java.util.ResourceBundle;
-
 /**
- * this class will provide a series of constants for working with multi-language applications
+ * this class will help to define the way data should be sorted.
  * 
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
-public class i18n {
-	public static final ResourceBundle USER_ACCESS_MANAGEMENT = ResourceBundle.getBundle("i18n.UserAccessManagement");
+public class DataSort<T extends Enum> {
+	private final T field;
+	private final DataSortOrder order;
+	private final boolean nullfirst;
+	
+	protected DataSort(T field,DataSortOrder order,boolean nullfirst) {
+		this.field = field;
+		this.order = order;
+		this.nullfirst = nullfirst;
+	}
+
+	public T getField() {
+		return field;
+	}
+
+	public DataSortOrder getOrder() {
+		return order;
+	}
+
+	public boolean isNullfirst() {
+		return nullfirst;
+	}
+	
+	public static <T extends Enum> DataSort<T> asc(T field,boolean nullfirst) {
+		return new DataSort(field,DataSortOrder.ASC,nullfirst);
+	}
+	
+	public static <T extends Enum> DataSort<T> desc(T field,boolean nullfirst) {
+		return new DataSort(field,DataSortOrder.DESC,nullfirst);
+	}
 }

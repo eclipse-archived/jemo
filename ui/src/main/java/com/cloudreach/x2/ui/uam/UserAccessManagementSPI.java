@@ -15,15 +15,22 @@
 * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
 ********************************************************************************
  */
-package com.cloudreach.x2.ui.util;
+package com.cloudreach.x2.ui.uam;
 
-import java.util.ResourceBundle;
+import com.cloudreach.x2.ui.UserData;
+import com.cloudreach.x2.ui.util.DataFilter;
+import com.cloudreach.x2.ui.util.DataSortOrder;
+import java.util.Set;
 
 /**
- * this class will provide a series of constants for working with multi-language applications
+ * the purpose of this interface is to provide a definition for how a data provider
+ * should produce the necessary information for the user access management interface
+ * as well as provide SDK type access to classes which want to make use of the UAM service
+ * within their applications but may need to interact with the data model at some level.
  * 
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
-public class i18n {
-	public static final ResourceBundle USER_ACCESS_MANAGEMENT = ResourceBundle.getBundle("i18n.UserAccessManagement");
+public interface UserAccessManagementSPI {
+	public Set<UserData> listUsers(Set<DataFilter> filters,Set<DataSortOrder> sortOrder,int offset,int limit) throws UserAccessManagementException;
+	public UserAccessManagementSPI addUser(UserData user) throws UserAccessManagementException;
 }

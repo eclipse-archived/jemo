@@ -40,6 +40,7 @@ public class ApplicationFeature extends View {
 	private List<ApplicationFeature> subfeatures = new ArrayList<>();
 	private Class<? extends Button> action = null;
 	private String script = null;
+	private boolean anchorUserAccessManagement = false;
 	
 	public ApplicationFeature() {}
 	
@@ -202,6 +203,23 @@ public class ApplicationFeature extends View {
 		} else {
 			addFeature(new ApplicationFeature(icon, title, externalUrl.substring("javascript:".length())));
 		}
+		return this;
+	}
+
+	@JsonIgnore
+	public boolean isAnchorUserAccessManagement() {
+		return anchorUserAccessManagement;
+	}
+
+	/**
+	 * by setting this to true the system will automatically add user access management applications to this 
+	 * feature.
+	 * 
+	 * @param anchorUserAccessManagement true if you want user access management applications put under this feature.
+	 */
+	@JsonIgnore
+	public ApplicationFeature setAnchorUserAccessManagement(boolean anchorUserAccessManagement) {
+		this.anchorUserAccessManagement = anchorUserAccessManagement;
 		return this;
 	}
 }

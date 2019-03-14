@@ -17,13 +17,11 @@
  */
 package com.cloudreach.x2.ui.util;
 
-import java.util.ResourceBundle;
-
 /**
- * this class will provide a series of constants for working with multi-language applications
+ * this class defines the types of filters that can be applied to data
  * 
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
-public class i18n {
-	public static final ResourceBundle USER_ACCESS_MANAGEMENT = ResourceBundle.getBundle("i18n.UserAccessManagement");
+public enum DataFilterOperator {
+	EQUALS,NOT_EQUALS,CONTAINS,NOT_CONTAINS,GREATER_THAN,LESS_THAN,REGEXP
 }

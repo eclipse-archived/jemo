@@ -19,7 +19,11 @@ package com.cloudreach.x2.ui;
 import com.cloudreach.connect.x2.api.Module;
 import com.cloudreach.connect.x2.internal.model.CCError;
 import com.cloudreach.connect.x2.internal.model.CCMessage;
+import com.cloudreach.x2.ui.uam.UserAccessManagementSPI;
+import com.cloudreach.x2.ui.uam.feature.UserManagementFeature;
+import com.cloudreach.x2.ui.uam.spi.JemoSPI;
 import com.cloudreach.x2.ui.util.Util;
+import com.cloudreach.x2.ui.util.i18n;
 import com.cloudreach.x2.ui.view.ButtonView;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -71,6 +75,7 @@ public abstract class Application extends Component implements Module {
 	
 	private Map<Long,UserData> userDataMap = new HashMap<>();
 	private boolean authentication = false;
+	private boolean userAccessManagement = false;
 	private static Logger log = null;
 	private String name = null;
 	private int id = 0;
@@ -79,6 +84,7 @@ public abstract class Application extends Component implements Module {
 	private String appKey = "X2";
 	private transient Map<String,String> configuration = new HashMap<>();
 	private Logger auditLog = null;
+	private transient UserAccessManagementSPI uamSPI;
 	
 	@Override
 	public void construct(Logger logger, String name, int id, double version) {
@@ -94,7 +100,31 @@ public abstract class Application extends Component implements Module {
 			this.configuration.clear();
 			this.configuration.putAll(configuration);
 		}
-		Module.super.configure(configuration); //To change body of generated methods, choose Tools | Templates.
+		if(uamSPI == null) {
+			uamSPI = new JemoSPI(this);
+		}
+		Module.super.configure(configuration);
+	}
+	
+	/**
+	 * this method will return a reference to the currently registered spi implementation of the user
+	 * access management system.
+	 * 
+	 * @return a reference to the current spi implementation for the user access management sub system.
+	 */
+	public UserAccessManagementSPI getUserAccessManagement() {
+		return this.uamSPI;
+	}
+	
+	/**
+	 * through this method you can set your own custom user access management spi implementation.
+	 * 
+	 * Note: the default implementation user the Eclipse Jemo cloud native runtime and will run on all public cloud providers.
+	 * 
+	 * @param spiImplementation a reference to your implementation of the user access management data interface
+	 */
+	public void setUserAccessManagementSPI(UserAccessManagementSPI spiImplementation) {
+		this.uamSPI = spiImplementation;
 	}
 
 	@Override
@@ -410,7 +440,22 @@ public abstract class Application extends Component implements Module {
 	private Object processEvent(String appPath,String event,HttpServletRequest request) throws Throwable {
 		//we are going to re-route this event to the backend component and ask that the necessary objects be generated so we can then return them to the front-end.
 		if(event.equals("onListFeatures")) {
-			return onListFeatures();
+			List<ApplicationFeature> featureList = onListFeatures();
+			if(isUserAccessManagement()) {
+				//we need to look for an anchor point.
+				List<ApplicationFeature> uamAnchors = featureList.stream().filter(f -> f.isAnchorUserAccessManagement()).collect(Collectors.toList());
+				if(uamAnchors.isEmpty()) {
+					//we need to add a new top level feature to host uam
+					ApplicationFeature uamFeature = new ApplicationFeature(ICON.tree, i18n.USER_ACCESS_MANAGEMENT.getString("app.defaultcontainer.title"));
+					uamFeature.setAnchorUserAccessManagement(true);
+					featureList.add(0, uamFeature);
+					uamAnchors.add(uamFeature);
+				} 
+				
+				//we need to add the application suite to all of the defined anchor points.
+				uamAnchors.forEach(f -> f.getSubfeatures().addAll(Arrays.asList(UserManagementFeature.FEATURE)));
+			}
+			return featureList;
 		} else if(event.equals("onUserLogin")) {
 			if(getAuthenticatedUser() != null) {
 				return onUserLogin(getAuthenticatedUser());
@@ -551,5 +596,27 @@ public abstract class Application extends Component implements Module {
 	
 	public String getGoogleAPIKey() {
 		return null;
+	}
+
+	/**
+	 * this method will return true if the default user access management system is enabled for this application
+	 * 
+	 * @return true if embedded user access management is enabled 
+	 */
+	public boolean isUserAccessManagement() {
+		return userAccessManagement;
+	}
+
+	/**
+	 * this method will allow you to enable or disable the embedded user access management system for your application.
+	 * User access management will allow you to manage users, groups, user metadata and application level security.
+	 * 
+	 * Only set this to true if you want to add the features to your application automatically. You can always add the applications
+	 * you want manually by using the specific features already provided by the framework.
+	 * 
+	 * @param userAccessManagement true to enable the default user access management system by default user access management is disabled.
+	 */
+	public void setUserAccessManagement(boolean userAccessManagement) {
+		this.userAccessManagement = userAccessManagement;
 	}
 }

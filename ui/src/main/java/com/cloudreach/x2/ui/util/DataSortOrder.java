@@ -17,13 +17,10 @@
  */
 package com.cloudreach.x2.ui.util;
 
-import java.util.ResourceBundle;
-
 /**
- * this class will provide a series of constants for working with multi-language applications
- * 
+ *
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
-public class i18n {
-	public static final ResourceBundle USER_ACCESS_MANAGEMENT = ResourceBundle.getBundle("i18n.UserAccessManagement");
+public enum DataSortOrder {
+	ASC,DESC
 }
