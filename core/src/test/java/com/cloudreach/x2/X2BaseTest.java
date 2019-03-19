@@ -264,11 +264,6 @@ public abstract class X2BaseTest {
 	protected X2BaseTest(boolean serverInstance) {
 		System.setProperty("cloudreach.connect.logs","true");
 		System.setProperty("com.cloudreach.x2.cloud","AWS");
-		System.setProperty("cloudreach.connect.clientsecret","nCIfIKn1e/Mzpn7MWgg6rzPEx3c2Zrtggs+mr9s464Y=");
-		System.setProperty("cloudreach.connect.tenantid","17edcc85-c20e-4e2c-8b80-96def55091c4");
-		System.setProperty("cloudreach.connect.clientid","35cbf257-782e-462c-9dff-2ef034b2b922");
-		System.setProperty("aws.accessKeyId","AKIAIAGA2QTYMFWF2SDQ");
-		System.setProperty("aws.secretKey","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");
 		System.setProperty("com.cloudreach.azure.msg.model","QUEUE");
 		System.setProperty("com.cloudreach.azure.storage","x2storage");
 		System.setProperty("cloudreach.connect.log.level","INFO");
