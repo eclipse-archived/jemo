@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jemo
+spec:
+  selector:
+    matchLabels:
+      app: jemo
+  serviceName: "jemo"
+  replicas: _JEMO_REPLICAS_
+  template:
+    metadata:
+      labels:
+        app: jemo
+    spec:
+      containers:
+        - name: jemo
+          image: eclipse/jemo:0.2
+          env:
+            - name: eclipse.jemo.csp.region
+              value: "_REGION_"
+            - name: eclipse.jemo.cloud
+              value: "AWS"
+            - name: eclipse.jemo.http.port
+              value: "80"
+            - name: eclipse.jemo.https.port
+              value: "443"
+          ports:
+            - containerPort: 80

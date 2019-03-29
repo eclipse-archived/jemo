@@ -1,0 +1,10 @@
+.DS_Store
+.idea
+*.iml
+
+.terraform*
+/azure
+/aws
+terraform.tfstate
+terraform.tfstate.backup
+
