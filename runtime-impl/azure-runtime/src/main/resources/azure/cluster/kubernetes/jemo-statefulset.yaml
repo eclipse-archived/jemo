@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jemo
+spec:
+  selector:
+    matchLabels:
+      app: jemo
+  updateStrategy:
+      type: RollingUpdate
+  serviceName: "jemo"
+  replicas: _REPLICAS_
+  template:
+    metadata:
+      labels:
+        app: jemo
+        aadpodidbinding: "jemo"
+    spec:
+      containers:
+        - name: jemo
+          image: eclipse/jemo:1.0.1
+          env:
+            - name: eclipse.jemo.cloud
+              value: "AZURE"
+            - name: eclipse.jemo.http.port
+              value: "80"
+            - name: eclipse.jemo.https.port
+              value: "443"
+            - name: eclipse.jemo.azure.resourcegroup
+              value: "_RESOURCE_GROUP_"
+            - name: eclipse.jemo.azure.eventhub
+              value: "_EVENT_HUB_"
+            - name: eclipse.jemo.azure.db
+              value: "_DB_"
+            - name: eclipse.jemo.azure.storage
+              value: "_STORAGE_"
+            - name: eclipse.jemo.azure.log-workspace
+              value: "_LOG_WORKSPACE_"
+            - name: eclipse.jemo.azure.keyvault
+              value: "_KEYVAULT_"
+            - name: eclipse.jemo.azure.msg.model
+              value: "_MSG_MODEL_"
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: kv-volume
+              mountPath: /kv
+              readOnly: true
+      volumes:
+        - name: kv-volume
+          flexVolume:
+            driver: "azure/kv"
+            secretRef:
+              name: kvcreds
+            options:
+              usepodidentity: "false"
+              keyvaultname: "_KEYVAULT_"
+              keyvaultobjectnames: "clientId;clientSecret;tenantId;encryptionKey"
+              keyvaultobjecttypes: "secret;secret;secret;secret"
+              resourcegroup: "_RESOURCE_GROUP_"
+              subscriptionid: "_SUBSCRIPTION_ID_"
+              tenantid: "_TENANT_ID_"
