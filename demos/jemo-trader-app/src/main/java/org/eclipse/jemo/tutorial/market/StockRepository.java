@@ -24,11 +24,9 @@ public class StockRepository {
     }
 
     public void init() {
-        if (runtime.hasNoSQLTable(TABLE_NAME)) {
-            runtime.dropNoSQLTable(TABLE_NAME);
+        if (!runtime.hasNoSQLTable(TABLE_NAME)) {
+            runtime.createNoSQLTable(TABLE_NAME);
         }
-        runtime.createNoSQLTable(TABLE_NAME);
-
     }
 
     public List<Stock> findAll() {

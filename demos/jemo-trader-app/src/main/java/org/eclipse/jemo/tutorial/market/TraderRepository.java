@@ -22,9 +22,12 @@ public class TraderRepository {
         this.runtime = runtime;
     }
 
-    public void init() {
+    public boolean init() {
         if (!runtime.hasNoSQLTable(TABLE_NAME)) {
             runtime.createNoSQLTable(TABLE_NAME);
+            return true;
+        } else {
+            return false;
         }
     }
 

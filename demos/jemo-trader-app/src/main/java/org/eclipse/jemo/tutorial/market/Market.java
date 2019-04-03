@@ -46,11 +46,16 @@ public class Market implements WebServiceModule {
     @Override
     public void installed() {
         log(INFO, "Installed phase. Initializing the database...");
-        TRADER_REPOSITORY.init();
+        final boolean wasInitNeeded = TRADER_REPOSITORY.init();
         STOCK_REPOSITORY.init();
 
+        if (!wasInitNeeded) {
+            log(INFO, "The database is already initialized...");
+            return;
+        }
+
         // Create 20 stocks.
-        final Stock[] stocks = IntStream.range(1, CURRENT_STOCK_ID)
+        final Stock[] stocks = IntStream.range(1, 21)
                 .mapToObj(id -> new Stock(String.valueOf(id), 100f))
                 .toArray(Stock[]::new);
         STOCK_REPOSITORY.save(stocks);
@@ -167,6 +172,7 @@ public class Market implements WebServiceModule {
         msg.setModuleClass(MarketMatcher.class.getName());
         msg.setId("1");
         msg.setPluginId(1);
+        msg.setPluginVersion(1.0); // Needs to be the same as the pom version
         msg.getAttributes().put(TRADER_ID, traderId);
         msg.send(JemoMessage.LOCATION_LOCALLY);
     }
