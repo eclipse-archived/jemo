@@ -411,7 +411,7 @@ public class JemoPluginManager {
     protected static long PLUGIN_INSTALLED_ON(String jarFileName) {
         try {
             return CloudProvider.getInstance().getRuntime().getModuleInstallDate(jarFileName);
-        } catch (IOException ioEx) {
+        } catch (Exception e) {
             return System.currentTimeMillis();
         }
     }
@@ -542,7 +542,7 @@ public class JemoPluginManager {
         Set<JemoModule> moduleSet = appList.stream()
                 .flatMap(app -> Util.F(null, x -> loadModules(app.getId()).stream()))
                 .filter(m -> m.getModule().getClass().getName().equals(msg.getModuleClass()))
-                .filter(m -> msg.getPluginVersion() != 0 ? m.getModule().getVersion() == msg.getPluginVersion() : m.getModule().getVersion() == version)
+                .filter(m -> msg.getPluginVersion() != 0 ? m.getMetaData().getVersion() == msg.getPluginVersion() : m.getMetaData().getVersion() == version)
                 .collect(Collectors.toSet());
 
         JemoModule module = moduleSet.stream().limit(1).findAny().orElse(null);

@@ -362,8 +362,6 @@ public abstract class AbstractJemo {
         } else {
             onSuccessfulValidation(provider.getRuntime());
         }
-        //we need to initialize our plugins/modules first and once they are there we will receive messages which they can process as a result
-        pluginManager = new JemoPluginManager(this);
 
         //http comes next as we need an operational system for synchronous processing before asynchronous processing can begin.
         httpServer = new JemoHTTPConnector(JEMO_HTTPS_PORT, JEMO_HTTP_PORT, this);
@@ -498,6 +496,11 @@ public abstract class AbstractJemo {
 
         //we should initialize the authentication layer before starting the plugin manager as all plugins will require authorisation
         JemoAuthentication.init(this);
+
+        IS_IN_INSTALLATION_MODE = false;
+
+        //we need to initialize our plugins/modules first and once they are there we will receive messages which they can process as a result
+        pluginManager = new JemoPluginManager(this);
     }
 
     public synchronized void stop() throws Exception {
@@ -617,7 +620,7 @@ public abstract class AbstractJemo {
         return moduleBatchList;
     }
 
-    public void sendRunBatchMessage(int moduleId, String moduleImplementation, String targetInstanceQueueUrl) {
+    public void sendRunBatchMessage(int moduleId, String moduleImplementation, double version, String targetInstanceQueueUrl) {
         Util.B(null, y -> {
             pluginManager.runWithModuleContext(Void.class, x -> {
                 JemoMessage scheduleMsg = new JemoMessage();
@@ -625,6 +628,7 @@ public abstract class AbstractJemo {
                 scheduleMsg.setPluginId(moduleId);
                 scheduleMsg.getAttributes().put("module_class", moduleImplementation);
                 scheduleMsg.send(targetInstanceQueueUrl);
+                scheduleMsg.setPluginVersion(version);
                 return null;
             });
         });

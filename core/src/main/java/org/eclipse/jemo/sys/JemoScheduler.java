@@ -241,7 +241,7 @@ public class JemoScheduler extends Thread {
 				Map<String,List<String>> moduleInstanceTargetMap = moduleInstanceMap.entrySet().stream()
 					.filter(e -> !e.getValue().isEmpty())
 					.map(e -> {
-						final KeyValue<List<String>> result = new KeyValue<>(e.getKey().getImplementation(),new ArrayList<>());
+						final KeyValue<List<String>> result = new KeyValue<>(e.getKey().getImplementation() + "_" + e.getKey().getVersion(),new ArrayList<>());
 						ModuleActivityMap modActivity = activityMap.stream().filter(act -> act.module.getImplementation().equals(e.getKey().getImplementation()) && act.module.getId() == e.getKey().getId())
 							.findAny().orElse(null);
 						if(modActivity != null) {
@@ -281,15 +281,16 @@ public class JemoScheduler extends Thread {
 					.forEach(e -> {
 					final String queueUrl = instanceQueueUrlList.stream().filter(qId -> qId.endsWith(e.getKey())).findFirst().orElse(e.getKey());
 					if(queueUrl != null) {
+						final String[] moduleClassNameAndVersion = e.getValue().split("_");
 						final int moduleId = instanceModuleMap.values().stream()
 							.flatMap(List::stream)
-							.filter(m -> m.getImplementation().equals(e.getValue()))
+							.filter(m -> m.getImplementation().equals(moduleClassNameAndVersion[0]))
 							.findAny()
 							.map(m -> m.getId())
 							.orElse(-1);
 						if(moduleId != -1) {
 							if(RUNNING.get()) {
-								jemoServer.sendRunBatchMessage(moduleId, e.getValue(), queueUrl);
+								jemoServer.sendRunBatchMessage(moduleId, moduleClassNameAndVersion[0], Double.parseDouble(moduleClassNameAndVersion[1]), queueUrl);
 							}
 						}
 					}

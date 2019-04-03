@@ -213,7 +213,7 @@ public class ServerMessage {
 					queueUrls.add(JemoPluginManager.getServerInstance().getINSTANCE_QUEUE_URL());
 					break;
 				case JemoMessage.LOCATION_CLOUD:
-					if(Arrays.asList(Jemo.CLOUD_LOCATIONS).stream().anyMatch(cl -> JemoPluginManager.getServerInstance().getINSTANCE_QUEUE_URL().contains("/JEMO-"+cl.toUpperCase()))) {
+					if(Arrays.asList(Jemo.CLOUD_LOCATIONS).stream().anyMatch(cl -> JemoPluginManager.getServerInstance().getINSTANCE_QUEUE_URL().toUpperCase().contains("/JEMO-"+cl.toUpperCase()))) {
 						queueUrls.add(JemoPluginManager.getServerInstance().getINSTANCE_QUEUE_URL());
 					}
 					break;
@@ -225,15 +225,15 @@ public class ServerMessage {
 		}
 		//make sure we are not sending to dead instances.
 		Set<String> activeInstances = JemoPluginManager.getServerInstance().getPluginManager().getActiveLocationList().stream()
-			.flatMap(l -> JemoPluginManager.getServerInstance().getPluginManager().listInstances(l).stream().map(inst -> "JEMO-"+l+"-"+inst))
+			.flatMap(l -> JemoPluginManager.getServerInstance().getPluginManager().listInstances(l).stream().map(inst -> ("jemo-"+l+"-"+inst).toUpperCase()))
 			.collect(Collectors.toSet());
 
-		queueUrls.removeIf(q -> !activeInstances.contains(CloudProvider.getInstance().getRuntime().getQueueName(q)));
+		queueUrls.removeIf(q -> !activeInstances.contains(CloudProvider.getInstance().getRuntime().getQueueName(q).toUpperCase()));
 		
 		queueUrls.parallelStream().forEach((q) -> {
 			try {
 				String queueName = CloudProvider.getInstance().getRuntime().getQueueName(q);
-				transmitMessage(message, q, queueName.substring(3,queueName.length()-37));
+				transmitMessage(message, q, queueName.substring(5,queueName.length()-37));
 			}catch(Throwable ex) {
 				Jemo.log(Level.FINE, "[%s][%s] could not broadcast message the queue probably does not exist: message body: %s error %s", q, location, msgJson, JemoError.toString(ex));
 			}
