@@ -936,14 +936,14 @@ public class AmazonAWSRuntime implements CloudRuntime {
     }
 
     @Override
-    public Set<String> listModules() {
+    public Set<String> listPlugins() {
         HashSet<String> moduleKeyList = new HashSet<>();
         String marker = null;
         ObjectListing objList;
         while ((objList = getS3(getRegionForS3Bucket(S3_PLUGIN_BUCKET())).listObjects(new ListObjectsRequest().withBucketName(S3_PLUGIN_BUCKET()).withMaxKeys(500).withMarker(marker))) != null) {
-            objList.getObjectSummaries().stream().filter((m) -> {
-                return m.getKey().endsWith(".jar");
-            }).forEach((s3obj) -> moduleKeyList.add(s3obj.getKey()));
+            objList.getObjectSummaries().stream()
+                    .filter((m) -> m.getKey().endsWith(".jar"))
+                    .forEach((s3obj) -> moduleKeyList.add(s3obj.getKey()));
             if (objList.isTruncated()) {
                 marker = objList.getNextMarker();
             } else {
@@ -1616,6 +1616,15 @@ public class AmazonAWSRuntime implements CloudRuntime {
         return "aws";
     }
 
+    @Override
+    public void removePluginFiles(String pluginJarFileName) {
+        remove(null, pluginJarFileName);
+        remove(null, pluginJarFileName + ".installed");
+        remove(null, pluginJarFileName + ".modulelist");
+        delete(getDefaultCategory(), pluginJarFileName + ".classlist");
+        delete(getDefaultCategory(), pluginJarFileName + ".crc32");
+    }
+
     @NotNull
     private Path prepareTerraformFiles(JemoRuntimeSetup.SetupParams setupParams) throws IOException {
         final String terraformDir = getTerraformClusterDir();
@@ -1695,7 +1704,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
                                         .containers(asList(
                                                 new V1Container()
                                                         .name("jemo")
-                                                        .image("eclipse/jemo:1.0.1")
+                                                        .image("eclipse/jemo:1.0.2")
                                                         .env(asList(
                                                                 new V1EnvVar().name(REGION.label()).value(AWSREGION),
                                                                 new V1EnvVar().name(CLOUD.label()).value("AWS"),

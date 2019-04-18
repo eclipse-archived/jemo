@@ -71,7 +71,7 @@ public class JemoWatchdog extends Thread {
 			jemoServer.getPluginManager().getApplicationList().stream()
 				.filter(app -> JemoPluginManager.PLUGIN_ID(app.getId()) != 0)
 				.filter(app -> System.currentTimeMillis() - app.getLastUsedOn() > TimeUnit.MINUTES.toMillis(10))
-				.forEach(app -> Util.B(null, x -> jemoServer.getPluginManager().unloadModule(app.getId())));
+				.forEach(app -> Util.B(null, x -> jemoServer.getPluginManager().unloadPlugin(app.getId())));
 
 			if (!jemoServer.isInInstallationMode()) {
 				CloudProvider.getInstance().getRuntime().watchdog(jemoServer.getLOCATION(), jemoServer.getINSTANCE_ID(), jemoServer.getINSTANCE_QUEUE_URL());

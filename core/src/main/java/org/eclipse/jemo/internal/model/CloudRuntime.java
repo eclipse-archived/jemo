@@ -59,7 +59,7 @@ public interface CloudRuntime {
 
     void log(List<CloudLogEvent> eventList);
 
-    Set<String> listModules();
+    Set<String> listPlugins();
 
     void uploadModule(String pluginFile, byte[] pluginBytes);
 
@@ -373,4 +373,11 @@ public interface CloudRuntime {
      * @return the CSP label
      */
     String getCspLabel();
+
+    /**
+     * Removes from the cloud storage all files related to a plugin version identified by the jar file name
+     *
+     * @param pluginJarFileName the jar file name of the plugin under deletion
+     */
+    void removePluginFiles(String pluginJarFileName);
 }

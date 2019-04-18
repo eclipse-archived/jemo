@@ -114,7 +114,7 @@ public class TestEventModule extends JemoGSMTest {
 	/** 1. if we send 100 messages with no limit we expect all 100 messages to be in the "in processing" state before the 10 seconds expire. **/
 	@Test
 	public void testDefault() throws Throwable {
-		uploadModule(80000, 1.0, TestDefaultModule.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestDefaultModule.class);
+		uploadPlugin(80000, 1.0, TestDefaultModule.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestDefaultModule.class);
 		IntStream.range(0, 20).forEach(i -> Util.B(null, x -> sendMessage(80000, 1.0, TestDefaultModule.class, JemoMessage.LOCATION_ANYWHERE, KeyValue.of("number", i))));
 		Thread.sleep(TimeUnit.SECONDS.toMillis(30));
 		assertEquals(20,PROCESS_MAP.get(TestDefaultModule.class.getName()).size());
@@ -132,7 +132,7 @@ public class TestEventModule extends JemoGSMTest {
 	
 	@Test
 	public void testGSMLimitOf5() throws Throwable {
-		uploadModule(80001, 1.0, TestGSMLimitOf5Module.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestGSMLimitOf5Module.class);
+		uploadPlugin(80001, 1.0, TestGSMLimitOf5Module.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestGSMLimitOf5Module.class);
 		IntStream.range(0, 100).forEach(i -> Util.B(null, x -> {
 			sendMessage(80001, 1.0, TestGSMLimitOf5Module.class, JemoMessage.LOCATION_ANYWHERE, KeyValue.of("number", i));
 			Thread.sleep(100);
@@ -159,7 +159,7 @@ public class TestEventModule extends JemoGSMTest {
 	
 	@Test
 	public void testLocationLimitOf10() throws Throwable {
-		uploadModule(80002, 1.0, TestLocationLimitOf10Module.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestLocationLimitOf10Module.class);
+		uploadPlugin(80002, 1.0, TestLocationLimitOf10Module.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestLocationLimitOf10Module.class);
 		IntStream.range(0, 100).forEach(i -> Util.B(null, x -> {
 			sendMessage(80002, 1.0, TestLocationLimitOf10Module.class, JemoMessage.LOCATION_ANYWHERE, KeyValue.of("number", i));
 			Thread.sleep(100);
@@ -183,7 +183,7 @@ public class TestEventModule extends JemoGSMTest {
 	
 	@Test
 	public void testGSMGlobalLimitOf5() throws Throwable {
-		uploadModule(80003, 1.0, TestGSMGlobalLimitOf5Module.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestGSMGlobalLimitOf5Module.class);
+		uploadPlugin(80003, 1.0, TestGSMGlobalLimitOf5Module.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestGSMGlobalLimitOf5Module.class);
 		IntStream.range(0, 100).forEach(i -> Util.B(null, x -> {
 			sendMessage(80003, 1.0, TestGSMGlobalLimitOf5Module.class, JemoMessage.LOCATION_ANYWHERE, KeyValue.of("number", i));
 		}));
@@ -203,7 +203,7 @@ public class TestEventModule extends JemoGSMTest {
 	
 	@Test
 	public void testOnlyTEST1Location() throws Throwable {
-		uploadModule(80004, 1.0, TestOnlyTEST1LocationModule.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestOnlyTEST1LocationModule.class);
+		uploadPlugin(80004, 1.0, TestOnlyTEST1LocationModule.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestOnlyTEST1LocationModule.class);
 		IntStream.range(0, 10).forEach(i -> Util.B(null, x -> {
 			sendMessage(80004, 1.0, TestOnlyTEST1LocationModule.class, "TEST3", KeyValue.of("number", i));
 		}));
@@ -224,7 +224,7 @@ public class TestEventModule extends JemoGSMTest {
 	
 	@Test
 	public void testOnlyTEST1LocationLimit5PerLocation() throws Throwable {
-		uploadModule(80005, 1.0, TestOnlyTEST1LocationLimit5PerLocationModule.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestOnlyTEST1LocationLimit5PerLocationModule.class);
+		uploadPlugin(80005, 1.0, TestOnlyTEST1LocationLimit5PerLocationModule.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestOnlyTEST1LocationLimit5PerLocationModule.class);
 		IntStream.range(0, 20).forEach(i -> Util.B(null, x -> {
 			sendMessage(80005, 1.0, TestOnlyTEST1LocationLimit5PerLocationModule.class, "TEST1", KeyValue.of("number", i));
 			Thread.sleep(100);
@@ -251,7 +251,7 @@ public class TestEventModule extends JemoGSMTest {
 	
 	@Test
 	public void testFrequency1PerSecond() throws Throwable {
-		uploadModule(80006, 1.0, TestFrequency1PerSecondModule.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestFrequency1PerSecondModule.class);
+		uploadPlugin(80006, 1.0, TestFrequency1PerSecondModule.class.getSimpleName(), TestEventModule.class, AbstractTestModule.class, TestFrequency1PerSecondModule.class);
 		long start = System.currentTimeMillis();
 		IntStream.range(0, 100).forEach(i -> Util.B(null, x -> {
 			sendMessage(80006, 1.0, TestFrequency1PerSecondModule.class, JemoMessage.LOCATION_ANYWHERE, KeyValue.of("number", i));

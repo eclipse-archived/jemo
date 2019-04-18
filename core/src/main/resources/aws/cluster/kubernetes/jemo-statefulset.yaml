@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: jemo
-          image: eclipse/jemo:1.0.1
+          image: eclipse/jemo:1.0.2
           env:
             - name: eclipse.jemo.csp.region
               value: "_REGION_"

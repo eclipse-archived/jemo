@@ -176,6 +176,10 @@ public class JemoApplicationMetaData implements SystemDBObject {
 		this.enabled = enabled;
 	}
 
+	public boolean isEnabled() {
+		return enabled;
+	}
+
 	public void setInstallDate(long installDate) {
 		this.installDate = installDate;
 	}

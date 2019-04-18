@@ -25,13 +25,11 @@ import org.eclipse.jemo.sys.internal.TerraformJob;
 import org.eclipse.jemo.sys.internal.TerraformJob.TerraformResult;
 import org.eclipse.jemo.sys.internal.Util;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kubernetes.client.ApiException;
 import org.jetbrains.annotations.NotNull;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -41,30 +39,32 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static org.eclipse.jemo.api.JemoParameter.CLOUD;
+import static org.eclipse.jemo.sys.JemoPluginManager.PluginManagerModule.respondWithJson;
 import static org.eclipse.jemo.sys.JemoRuntimeSetup.TerraformJobResponse.ClusterCreationStatus.*;
 import static org.eclipse.jemo.sys.JemoRuntimeSetup.SetupError.Code.*;
+import static org.eclipse.jemo.sys.internal.Util.readAllBytes;
 
 public class JemoRuntimeSetup {
 
-    private static final String JEMO_MANAGER_SETUP = "/jemo/setup";
-    private static final String CSP_ENDPOINT = JEMO_MANAGER_SETUP + "/csp";
-    private static final String INSTALL_PROPS_ENDPOINT = JEMO_MANAGER_SETUP + "/install/props";
-    private static final String INIT_ENDPOINT = JEMO_MANAGER_SETUP + "/init";
-    private static final String CREDENTIALS_ENDPOINT = JEMO_MANAGER_SETUP + "/credentials";
-    private static final String PERMISSIONS_ENDPOINT = JEMO_MANAGER_SETUP + "/permissions";
-    private static final String INSTALL_ENDPOINT = JEMO_MANAGER_SETUP + "/install";
+    public static final String JEMO_SETUP = "/jemo/setup";
+    private static final String CSP_ENDPOINT = JEMO_SETUP + "/csp";
+    private static final String INSTALL_PROPS_ENDPOINT = JEMO_SETUP + "/install/props";
+    private static final String INIT_ENDPOINT = JEMO_SETUP + "/init";
+    private static final String CREDENTIALS_ENDPOINT = JEMO_SETUP + "/credentials";
+    private static final String PERMISSIONS_ENDPOINT = JEMO_SETUP + "/permissions";
+    private static final String INSTALL_ENDPOINT = JEMO_SETUP + "/install";
     private static final String INSTALL_RESULT_ENDPOINT = INSTALL_ENDPOINT + "/result";
-    private static final String JEMO_PARAMS_ENDPOINT = JEMO_MANAGER_SETUP + "/jemoparams";
-    private static final String JEMO_PARAMSETS_ENDPOINT = JEMO_MANAGER_SETUP + "/jemoparams/paramsets";
-    private static final String START_LOCAL_INSTANCE_ENDPOINT = JEMO_MANAGER_SETUP + "/start";
-    private static final String CLUSTER_ENDPOINT = JEMO_MANAGER_SETUP + "/cluster";
+    private static final String JEMO_PARAMS_ENDPOINT = JEMO_SETUP + "/jemoparams";
+    private static final String JEMO_PARAMSETS_ENDPOINT = JEMO_SETUP + "/jemoparams/paramsets";
+    private static final String START_LOCAL_INSTANCE_ENDPOINT = JEMO_SETUP + "/start";
+    private static final String CLUSTER_ENDPOINT = JEMO_SETUP + "/cluster";
     private static final String CREATE_CLUSTER_RESULT_ENDPOINT = CLUSTER_ENDPOINT + "/result";
     private static final String CREATE_CLUSTER_PARAMS = CLUSTER_ENDPOINT + "/params";
-    private static final String NETWORKS_ENDPOINT = JEMO_MANAGER_SETUP + "/networks";
-    private static final String POLICIES_ENDPOINT = JEMO_MANAGER_SETUP + "/policy";
-    private static final String POLICIES_VALIDATE_ENDPOINT = JEMO_MANAGER_SETUP + "/policy/validate";
+    private static final String NETWORKS_ENDPOINT = JEMO_SETUP + "/networks";
+    private static final String POLICIES_ENDPOINT = JEMO_SETUP + "/policy";
+    private static final String POLICIES_VALIDATE_ENDPOINT = JEMO_SETUP + "/policy/validate";
     private static final String DOWNLOAD_CLUSTER_TERRAFORM_TEMPLATES_ENDPOINT = CLUSTER_ENDPOINT + "/download";
-    private static final String DOWNLOAD_INSTALL_TERRAFORM_TEMPLATES_ENDPOINT = JEMO_MANAGER_SETUP + "/install/download";
+    private static final String DOWNLOAD_INSTALL_TERRAFORM_TEMPLATES_ENDPOINT = JEMO_SETUP + "/install/download";
 
     public static final String TFVARS_FILE_NAME = "terraform.tfvars";
 
@@ -72,7 +72,7 @@ public class JemoRuntimeSetup {
     private static Future<? extends TerraformJobResponse> TERAFORM_JOB_FUTURE;
     private static StringBuilder TERRAFORM_JOB_OUTPUT;
 
-    public static void processRequest(AbstractJemo jemoServer, HttpServletRequest request, HttpServletResponse response) throws IOException, NoSuchAlgorithmException, ApiException, ExecutionException, InterruptedException {
+    public static void processRequest(AbstractJemo jemoServer, HttpServletRequest request, HttpServletResponse response) throws IOException, NoSuchAlgorithmException, ExecutionException, InterruptedException {
         switch (request.getMethod()) {
             case "GET":
                 if (request.getRequestURI().startsWith(INIT_ENDPOINT)) {
@@ -92,7 +92,7 @@ public class JemoRuntimeSetup {
                 } else if (request.getRequestURI().startsWith(CREATE_CLUSTER_PARAMS)) {
                     getClusterParameters(request, response);
                 } else {
-                    loadFile(request.getRequestURI().replaceAll(JEMO_MANAGER_SETUP, ""), response);
+                    loadFile(request.getRequestURI().replaceAll(JEMO_SETUP, ""), response);
                 }
                 break;
             case "POST":
@@ -162,7 +162,7 @@ public class JemoRuntimeSetup {
     }
 
     /**
-     * Forwards to loadFile.html
+     * Forwards to setup/index.html
      *
      * @param requestUri
      * @param response   the http servlet response object
@@ -172,19 +172,6 @@ public class JemoRuntimeSetup {
         final String fileName = requestUri.isEmpty() || requestUri.equals("/") ? "/index.html" : requestUri;
         final InputStream in = Jemo.class.getResourceAsStream("/setup" + fileName);
         Jemo.stream(response.getOutputStream(), new ByteArrayInputStream(readAllBytes(in)));
-    }
-
-    private static byte[] readAllBytes(InputStream inputStream) throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-        int nRead;
-        byte[] data = new byte[16384];
-
-        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, nRead);
-        }
-
-        return buffer.toByteArray();
     }
 
     private static void validateCredentials(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -217,17 +204,6 @@ public class JemoRuntimeSetup {
         } else {
             respondWithJson(403, response, validationResult.notAllowedActions());
         }
-    }
-
-    private static void respondWithJson(int statusCode, HttpServletResponse response, Object obj) throws IOException {
-        response.setStatus(statusCode);
-        response.addHeader("Access-Control-Allow-Origin", "*");
-        response.setContentType("application/json");
-        final OutputStream out = response.getOutputStream();
-        final String json = Jemo.toJSONString(obj);
-        out.write(json.getBytes(StandardCharsets.UTF_8));
-        out.flush();
-        out.close();
     }
 
     /**

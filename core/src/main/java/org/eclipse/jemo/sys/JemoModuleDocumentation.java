@@ -51,13 +51,13 @@ public class JemoModuleDocumentation {
 	
 	public synchronized JemoClassLoader getDocumentationClassLoader(String moduleJar) throws IOException {
 		JemoClassLoader docClassLoader = null;
-		Set<JemoModule> moduleList = jemoServer.getPluginManager().getModulesByPluginId(JemoPluginManager.PLUGIN_ID(moduleJar));
+		Set<JemoModule> moduleList = jemoServer.getPluginManager().loadPluginModules(JemoPluginManager.PLUGIN_ID(moduleJar));
 		if(moduleList != null && !moduleList.isEmpty()) {
 			docClassLoader = JemoClassLoader.class.cast(moduleList.iterator().next().getModule().getClass().getClassLoader());
 		} else if(docModuleCache.containsKey(moduleJar)) {
 			return docModuleCache.get(moduleJar);
 		} else {
-			docClassLoader = jemoServer.getPluginManager().buildModuleClassLoader(moduleJar);
+			docClassLoader = jemoServer.getPluginManager().buildPluginClassLoader(moduleJar);
 			if(docClassLoader != null) {
 				docModuleCache.put(moduleJar, docClassLoader);
 			}

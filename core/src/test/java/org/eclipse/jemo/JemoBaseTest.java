@@ -103,10 +103,10 @@ public abstract class JemoBaseTest {
 		jemoServer = null;
 	}
 	
-	protected void uploadModule(int moduleId,double moduleVersion,String pluginName,InputStream pluginDataStream) throws Throwable {
-		JemoPluginManager.PluginManagerModule pluginManagerMod = (JemoPluginManager.PluginManagerModule) jemoServer.getPluginManager().getModuleByClassName(0, JemoPluginManager.PluginManagerModule.class.getName()).getModule();
+	protected void uploadPlugin(int pluginId, double pluginVersion, String pluginName, InputStream pluginDataStream) throws Throwable {
+		JemoPluginManager.PluginManagerModule pluginManagerMod = (JemoPluginManager.PluginManagerModule) jemoServer.getPluginManager().loadModuleByClassName(0, JemoPluginManager.PluginManagerModule.class.getName()).getModule();
 		jemoServer.getPluginManager().runWithModuleContext(Void.class, x -> {
-			pluginManagerMod.uploadModule(moduleId, moduleVersion, pluginName, pluginDataStream);
+			pluginManagerMod.uploadPlugin(pluginId, pluginVersion, pluginName, pluginDataStream);
 			return null;
 		});
 	}
@@ -126,13 +126,13 @@ public abstract class JemoBaseTest {
 		Util.B(null, x -> Thread.sleep(TimeUnit.SECONDS.toMillis(2)));
 	}
 	
-	protected void uploadModule(int moduleId,double moduleVersion,String pluginName,Class... moduleClassList) throws Throwable {
+	protected void uploadPlugin(int pluginId, double pluginVersion, String pluginName, Class... moduleClassList) throws Throwable {
 		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 		Util.createJar(byteOut, moduleClassList);
 		final byte[] jarBytes = byteOut.toByteArray();
 		
 		//we now need to upload this jar file to the GSM cluster.
-		uploadModule(moduleId, moduleVersion, pluginName, new ByteArrayInputStream(jarBytes));
+		uploadPlugin(pluginId, pluginVersion, pluginName, new ByteArrayInputStream(jarBytes));
 	}
 	
 	protected void sendMessage(int moduleId,double moduleVersion,Class<? extends Module> moduleClass,String location,KeyValue... attributes) throws Throwable {

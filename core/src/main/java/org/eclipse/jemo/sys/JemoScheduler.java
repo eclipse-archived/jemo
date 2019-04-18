@@ -69,27 +69,27 @@ public class JemoScheduler extends Thread {
 	
 	protected static class ModuleActivityMap {
 		private final AbstractJemo jemoServer;
-		private final JemoPluginManager.ModuleInfo module;
+		private final ModuleInfo moduleInfo;
 		private final Set<String> instances;
 		private final ModuleLimit limits;
 		
-		public ModuleActivityMap(AbstractJemo jemoServer, JemoPluginManager.ModuleInfo module, Set<String> instances, ModuleLimit limits) {
-			this.module = module;
+		public ModuleActivityMap(AbstractJemo jemoServer, ModuleInfo moduleInfo, Set<String> instances, ModuleLimit limits) {
+			this.moduleInfo = moduleInfo;
 			this.instances = instances;
 			this.limits = limits;
 			this.jemoServer = jemoServer;
 		}
 		
 		public int getCurrentGSMActivity() {
-			return jemoServer.getPluginManager().getNumModuleEventsRunningOnGSM(module.getId(), module.getVersion(), module.getImplementation());
+			return jemoServer.getPluginManager().getNumModuleEventsRunningOnGSM(moduleInfo.getId(), moduleInfo.getVersion(), moduleInfo.getImplementation());
 		}
 		
 		public int getCurrentInstanceActivity(String instanceId) {
-			return JemoPluginManager.getNumModuleEventsRunning(instanceId, module.getId(), module.getVersion(), module.getImplementation());
+			return JemoPluginManager.getNumModuleEventsRunning(instanceId, moduleInfo.getId(), moduleInfo.getVersion(), moduleInfo.getImplementation());
 		}
 		
 		public int getCurrentLocationActivity(String location) {
-			return jemoServer.getPluginManager().getNumModuleEventsRunningOnLocation(location,module.getId(), module.getVersion(), module.getImplementation());
+			return jemoServer.getPluginManager().getNumModuleEventsRunningOnLocation(location,moduleInfo.getId(), moduleInfo.getVersion(), moduleInfo.getImplementation());
 		}
 		
 		public int getGSMMaximum() {
@@ -115,7 +115,7 @@ public class JemoScheduler extends Thread {
 			if(limits.getBatchFrequency() == null) {
 				return true;
 			}
-			long lastExecutionDate = jemoServer.getPluginManager().getLastLaunchedModuleEventOnGSM(module.getId(), module.getVersion(), module.getImplementation());
+			long lastExecutionDate = jemoServer.getPluginManager().getLastLaunchedModuleEventOnGSM(moduleInfo.getId(), moduleInfo.getVersion(), moduleInfo.getImplementation());
 			if(lastExecutionDate == 0) {
 				return true;
 			}
@@ -213,7 +213,7 @@ public class JemoScheduler extends Thread {
 				//we need to know where things are being executed so we can filter out modules which are over their limits.
 				Set<String> activeInstanceList = jemoServer.getPluginManager().getActiveInstanceList();
 				Map<String,String> instanceLocationMap = jemoServer.getPluginManager().getInstanceLocationMap(activeInstanceList.toArray(new String[] {}));
-				Map<String,List<JemoPluginManager.ModuleInfo>> instanceModuleMap = activeInstanceList
+				Map<String,List<ModuleInfo>> instanceModuleMap = activeInstanceList
 					.stream()
 					.map(inst -> new KeyValue<>(inst,
 						Arrays.asList(jemoServer.getPluginManager().getModuleList(inst)).stream()
@@ -230,10 +230,12 @@ public class JemoScheduler extends Thread {
 					.collect(Collectors.toList());
 				
 				//remove modules from the instance map that have incompatible activity.
-				instanceModuleMap.values().forEach(mList -> mList.removeIf(m -> !activityMap.stream().anyMatch(act -> act.module.getId() == m.getId() && act.module.getImplementation().equals(m.getImplementation()))));
+				instanceModuleMap.values().forEach(mList ->
+                        mList.removeIf(m -> !activityMap.stream()
+                                .anyMatch(act -> act.moduleInfo.getId() == m.getId() && act.moduleInfo.getImplementation().equals(m.getImplementation()))));
 				
 				//2. now we need an inverted map that will tell us the modules per instance (all module versions are available on all instances)
-				Map<JemoPluginManager.ModuleInfo,Set<String>> moduleInstanceMap = instanceModuleMap.entrySet().stream()
+				Map<ModuleInfo,Set<String>> moduleInstanceMap = instanceModuleMap.entrySet().stream()
 					.flatMap(e -> e.getValue().stream().map(mod -> new AbstractMap.SimpleEntry<>(mod,e.getKey())))
 					.collect(Collectors.groupingBy(AbstractMap.SimpleEntry::getKey,Collectors.mapping(AbstractMap.SimpleEntry::getValue, Collectors.toSet())));
 				
@@ -242,7 +244,7 @@ public class JemoScheduler extends Thread {
 					.filter(e -> !e.getValue().isEmpty())
 					.map(e -> {
 						final KeyValue<List<String>> result = new KeyValue<>(e.getKey().getImplementation() + "_" + e.getKey().getVersion(),new ArrayList<>());
-						ModuleActivityMap modActivity = activityMap.stream().filter(act -> act.module.getImplementation().equals(e.getKey().getImplementation()) && act.module.getId() == e.getKey().getId())
+						ModuleActivityMap modActivity = activityMap.stream().filter(act -> act.moduleInfo.getImplementation().equals(e.getKey().getImplementation()) && act.moduleInfo.getId() == e.getKey().getId())
 							.findAny().orElse(null);
 						if(modActivity != null) {
 							if(modActivity.getInstanceMaximum() != -1) { //this means that we should have at least 1 per instance and possibly more if the maximum is higher.

@@ -188,7 +188,7 @@ public class TestPluginManager extends JemoGSMTest {
 				}
 
 				@Override
-				public Set<String> listModules() {
+				public Set<String> listPlugins() {
 					return Arrays.asList("10_Test-1-1.0.jar").stream().collect(Collectors.toSet());
 				}
 
@@ -306,7 +306,7 @@ public class TestPluginManager extends JemoGSMTest {
 	@Test
 	public void test_listPlugins() {
 		List<JemoApplicationMetaData> appList = Util.getFieldValue(jemoServer.getPluginManager(), "APPLICATION_LIST", List.class);
-		assertEquals(appList.size(), jemoServer.getPluginManager().listPlugins().size());
+		assertEquals(appList.size(), jemoServer.getPluginManager().listPluginIds().size());
 	}
 	
 	public static class TestWebModule implements Module {
@@ -376,7 +376,7 @@ public class TestPluginManager extends JemoGSMTest {
 		});
 		assertEquals("the path: /1/v1.0/test does not currespond to any mappings. supported mappings are: "+Util.getFieldValue(jemoServer.getPluginManager(), "moduleEndpointMap", Map.class).toString(), errorStr.value);
 		//ok now lets add a module map for our test module.
-		uploadModule(1, 1.0, TestWebModule.class.getSimpleName(), TestWebModule.class, TestPluginManager.class);
+		uploadPlugin(1, 1.0, TestWebModule.class.getSimpleName(), TestWebModule.class, TestPluginManager.class);
 		//we now need to wait until the upload has completed.
 		do {
 			TimeUnit.SECONDS.sleep(1);

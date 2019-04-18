@@ -142,7 +142,7 @@ public class TestBatchModule extends JemoGSMTest {
 	
 	@Test
 	public void testDefaultBatchModule() throws Throwable {
-		uploadModule(70000, 1.0, DefaultBatchModule.class.getSimpleName(), TestFixedModule.ProcessData.class, DefaultBatchModule.class, AbstractTestModule.class, TestBatchModule.class);
+		uploadPlugin(70000, 1.0, DefaultBatchModule.class.getSimpleName(), TestFixedModule.ProcessData.class, DefaultBatchModule.class, AbstractTestModule.class, TestBatchModule.class);
 		//wait 2 seconds (we expect to have 2 active processes one on TEST1 and the other on TEST2)
 		TimeUnit.MILLISECONDS.sleep(2500);
 		assertEquals(2, ACTIVE_PROCESSES(DefaultBatchModule.class).size());
@@ -165,7 +165,7 @@ public class TestBatchModule extends JemoGSMTest {
 	
 	@Test
 	public void testOneBatchPerGSMPerSecond() throws Throwable {
-		uploadModule(70001, 1.0, OneBatchPerGSMPerSecond.class.getSimpleName(), TestFixedModule.ProcessData.class, OneBatchPerGSMPerSecond.class, AbstractTestModule.class, TestBatchModule.class);
+		uploadPlugin(70001, 1.0, OneBatchPerGSMPerSecond.class.getSimpleName(), TestFixedModule.ProcessData.class, OneBatchPerGSMPerSecond.class, AbstractTestModule.class, TestBatchModule.class);
 		//wait 2 seconds (we expect to have 2 active processes one on TEST1 and the other on TEST2)
 		TimeUnit.MILLISECONDS.sleep(2500);
 		assertEquals(1, ACTIVE_PROCESSES(OneBatchPerGSMPerSecond.class).size());
@@ -185,7 +185,7 @@ public class TestBatchModule extends JemoGSMTest {
 	
 	@Test
 	public void testOneBatchPerInstancePerSecond() throws Throwable {
-		uploadModule(70002, 1.0, OneBatchPerInstancePerSecond.class.getSimpleName(), TestFixedModule.ProcessData.class, OneBatchPerInstancePerSecond.class, AbstractTestModule.class, TestBatchModule.class);
+		uploadPlugin(70002, 1.0, OneBatchPerInstancePerSecond.class.getSimpleName(), TestFixedModule.ProcessData.class, OneBatchPerInstancePerSecond.class, AbstractTestModule.class, TestBatchModule.class);
 		//wait 2 seconds (we expect to have 2 active processes one on TEST1 and the other on TEST2)
 		TimeUnit.MILLISECONDS.sleep(4000);
 		assertEquals(instanceList().size(), ACTIVE_PROCESSES(OneBatchPerInstancePerSecond.class).size());
@@ -208,7 +208,7 @@ public class TestBatchModule extends JemoGSMTest {
 	
 	@Test
 	public void testTwoBatchesPerGSM() throws Throwable {
-		uploadModule(70003, 1.0, TwoBatchesPerGSM.class.getSimpleName(), TestFixedModule.ProcessData.class, TwoBatchesPerGSM.class, AbstractTestModule.class, TestBatchModule.class);
+		uploadPlugin(70003, 1.0, TwoBatchesPerGSM.class.getSimpleName(), TestFixedModule.ProcessData.class, TwoBatchesPerGSM.class, AbstractTestModule.class, TestBatchModule.class);
 		//wait 2 seconds (we expect to have 2 active processes one on TEST1 and the other on TEST2)
 		waitForProcess(TwoBatchesPerGSM.class, TimeUnit.SECONDS, 2);
 		assertEquals(1, ACTIVE_PROCESSES(TwoBatchesPerGSM.class).size());
@@ -236,7 +236,7 @@ public class TestBatchModule extends JemoGSMTest {
 	
 	@Test
 	public void testOnlyOnTEST1LocationOncePerSecond() throws Throwable {
-		uploadModule(70004, 1.0, OnlyOnTEST1LocationOncePerSecond.class.getSimpleName(), TestFixedModule.ProcessData.class, OnlyOnTEST1LocationOncePerSecond.class, AbstractTestModule.class, TestBatchModule.class);
+		uploadPlugin(70004, 1.0, OnlyOnTEST1LocationOncePerSecond.class.getSimpleName(), TestFixedModule.ProcessData.class, OnlyOnTEST1LocationOncePerSecond.class, AbstractTestModule.class, TestBatchModule.class);
 		//wait 2 seconds (we expect to have 2 active processes one on TEST1 and the other on TEST2)
 		waitForProcess(OnlyOnTEST1LocationOncePerSecond.class, TimeUnit.SECONDS, 5);
 		assertEquals(1, ACTIVE_PROCESSES(OnlyOnTEST1LocationOncePerSecond.class,"TEST1").size());
@@ -264,7 +264,7 @@ public class TestBatchModule extends JemoGSMTest {
 	
 	@Test
 	public void testOnlyOnTEST3LocationOncePerSecond() throws Throwable {
-		uploadModule(70005, 1.0, OnlyOnTEST3LocationOncePerSecond.class.getSimpleName(), TestFixedModule.ProcessData.class, OnlyOnTEST3LocationOncePerSecond.class, AbstractTestModule.class, TestBatchModule.class);
+		uploadPlugin(70005, 1.0, OnlyOnTEST3LocationOncePerSecond.class.getSimpleName(), TestFixedModule.ProcessData.class, OnlyOnTEST3LocationOncePerSecond.class, AbstractTestModule.class, TestBatchModule.class);
 		//wait 2 seconds (we expect to have 2 active processes one on TEST1 and the other on TEST2)
 		waitForProcess(OnlyOnTEST3LocationOncePerSecond.class, TimeUnit.SECONDS, 5);
 		assertEquals(0, ACTIVE_PROCESSES(OnlyOnTEST3LocationOncePerSecond.class).size());
@@ -284,7 +284,7 @@ public class TestBatchModule extends JemoGSMTest {
 	
 	@Test
 	public void testOnceEvery30Seconds() throws Throwable {
-		uploadModule(70006, 1.0, OnceEvery30Seconds.class.getSimpleName(), TestFixedModule.ProcessData.class, OnceEvery30Seconds.class, AbstractTestModule.class, TestBatchModule.class);
+		uploadPlugin(70006, 1.0, OnceEvery30Seconds.class.getSimpleName(), TestFixedModule.ProcessData.class, OnceEvery30Seconds.class, AbstractTestModule.class, TestBatchModule.class);
 		//wait 2 seconds (we expect to have 2 active processes one on TEST1 and the other on TEST2)
 		waitForProcess(OnceEvery30Seconds.class, TimeUnit.SECONDS, 5);
 		assertEquals(1, ACTIVE_PROCESSES(OnceEvery30Seconds.class).size());

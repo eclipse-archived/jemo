@@ -147,7 +147,7 @@ public class TestFixedModule extends JemoGSMTest {
 	@Test
 	public void testDefaultFixedModule() throws Throwable {
 		//we now need to upload this jar file to the GSM cluster.
-		uploadModule(90000, 1.0, DefaultFixedModule.class.getSimpleName(), TestFixedModule.class, DefaultFixedModule.class);
+		uploadPlugin(90000, 1.0, DefaultFixedModule.class.getSimpleName(), TestFixedModule.class, DefaultFixedModule.class);
 		
 		//after the upload we of course need to simulate the fact that the batch processor has been run on the base plugin module
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
@@ -228,7 +228,7 @@ public class TestFixedModule extends JemoGSMTest {
 	@Test
 	public void testRun1FixedModuleInEachLocation() throws Throwable {
 		//we now need to upload this jar file to the GSM cluster.
-		uploadModule(90001, 1.0, OneFixedPerLocation.class.getSimpleName(), TestFixedModule.class, OneFixedPerLocation.class, AbstractFixedModuleTest.class);
+		uploadPlugin(90001, 1.0, OneFixedPerLocation.class.getSimpleName(), TestFixedModule.class, OneFixedPerLocation.class, AbstractFixedModuleTest.class);
 		
 		//after the upload we of course need to simulate the fact that the batch processor has been run on the base plugin module
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
@@ -251,7 +251,7 @@ public class TestFixedModule extends JemoGSMTest {
 	/** 2. we have 1 fixed module running on each instance **/
 	@Test
 	public void testRun1FixedModuleInEachInstance() throws Throwable {
-		uploadModule(90002, 1.0, OneFixedPerInstance.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, OneFixedPerInstance.class);
+		uploadPlugin(90002, 1.0, OneFixedPerInstance.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, OneFixedPerInstance.class);
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
 		
 		assertEquals(instanceList().size(), ACTIVE_MODULES.get(OneFixedPerInstance.class.getName()).size()); //we must have one active instance per instance.
@@ -271,7 +271,7 @@ public class TestFixedModule extends JemoGSMTest {
 	/** 4. we have 2 fixed modules running on each location (we expect the distribution to be even across instances in each location) **/
 	@Test
 	public void testRun2FixedModuleInEachLocation() throws Throwable {
-		uploadModule(90003, 1.0, TwoFixedPerLocation.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, TwoFixedPerLocation.class);
+		uploadPlugin(90003, 1.0, TwoFixedPerLocation.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, TwoFixedPerLocation.class);
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
 		
 		assertEquals(4, ACTIVE_MODULES.get(TwoFixedPerLocation.class.getName()).size());
@@ -306,7 +306,7 @@ public class TestFixedModule extends JemoGSMTest {
 	/** 5. we have 2 fixed modules running on each GSM (we expect the there to be 2 processes running on different instances) **/
 	@Test
 	public void testRun2FixedModuleOnGSM() throws Throwable {
-		uploadModule(90004, 1.0, TwoFixedPerGSM.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, TwoFixedPerGSM.class);
+		uploadPlugin(90004, 1.0, TwoFixedPerGSM.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, TwoFixedPerGSM.class);
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
 		
 		assertEquals(2, ACTIVE_MODULES.get(TwoFixedPerGSM.class.getName()).size());
@@ -325,7 +325,7 @@ public class TestFixedModule extends JemoGSMTest {
 	/** 6. we have 2 fixed modules running on each instance (we expect a total of 2 per instance and the total to be 2 * the number of instances in the GSM). **/
 	@Test
 	public void testRun2FixedModuleOnInstance() throws Throwable {
-		uploadModule(90005, 1.0, TwoFixedPerInstance.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, TwoFixedPerInstance.class);
+		uploadPlugin(90005, 1.0, TwoFixedPerInstance.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, TwoFixedPerInstance.class);
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
 		
 		assertEquals(instanceList().size()*2, ACTIVE_MODULES.get(TwoFixedPerInstance.class.getName()).size());
@@ -347,7 +347,7 @@ public class TestFixedModule extends JemoGSMTest {
 	/** 7. we have 1 fixed module running only on the "TEST1" location (we expect 1 process to be running on an instance in "TEST1") **/
 	@Test
 	public void testRun1FixedModuleInTest1() throws Throwable {
-		uploadModule(90006, 1.0, OneRunningInTEST1Location.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, OneRunningInTEST1Location.class);
+		uploadPlugin(90006, 1.0, OneRunningInTEST1Location.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, OneRunningInTEST1Location.class);
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
 		
 		assertEquals(1, ACTIVE_MODULES.get(OneRunningInTEST1Location.class.getName()).stream().filter(proc -> proc.getLocation().equals("TEST1")).count());
@@ -366,7 +366,7 @@ public class TestFixedModule extends JemoGSMTest {
 	/** 8. we have 4 fixed modules running only on the "TEST2" location (we expect the processes to be evenly distributed in the instances on "TEST2") for the GSM. **/
 	@Test
 	public void testFourFixedRunningInTEST2Location() throws Throwable {
-		uploadModule(90007, 1.0, FourFixedRunningInTEST2Location.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, FourFixedRunningInTEST2Location.class);
+		uploadPlugin(90007, 1.0, FourFixedRunningInTEST2Location.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, FourFixedRunningInTEST2Location.class);
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
 
 		assertEquals(4, ACTIVE_MODULES.get(FourFixedRunningInTEST2Location.class.getName()).stream().filter(proc -> proc.getLocation().equals("TEST2")).count());
@@ -397,7 +397,7 @@ public class TestFixedModule extends JemoGSMTest {
 	/** 9. we have 4 fixed modules running on an invalid location. "TEST3" (we expect no processes to be running) **/
 	@Test
 	public void testFourFixedRunningInTEST3Location() throws Throwable {
-		uploadModule(90008, 1.0, FourFixedRunningInTEST3Location.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, FourFixedRunningInTEST3Location.class);
+		uploadPlugin(90008, 1.0, FourFixedRunningInTEST3Location.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, FourFixedRunningInTEST3Location.class);
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
 		
 		assertNull(ACTIVE_MODULES.get(FourFixedRunningInTEST3Location.class.getName()));
@@ -416,7 +416,7 @@ public class TestFixedModule extends JemoGSMTest {
 	/** 10. we have 1 process per location running on the "TEST1" location (we expect only 1 process to be running on an instance in "TEST1") **/
 	@Test
 	public void testOneInstanceInTEST1Location() throws Throwable {
-		uploadModule(90009, 1.0, OneInstanceInTEST1Location.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, OneInstanceInTEST1Location.class);
+		uploadPlugin(90009, 1.0, OneInstanceInTEST1Location.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, OneInstanceInTEST1Location.class);
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
 		
 		assertEquals(1, ACTIVE_MODULES.get(OneInstanceInTEST1Location.class.getName()).size());
@@ -441,7 +441,7 @@ public class TestFixedModule extends JemoGSMTest {
 	/** 11. we have 2 process per location running on the "TEST3" location (we expect no processes to be running) **/
 	@Test
 	public void testTwoPerLocationInTEST3Location() throws Throwable {
-		uploadModule(90010, 1.0, TwoPerLocationInTEST3Location.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, TwoPerLocationInTEST3Location.class);
+		uploadPlugin(90010, 1.0, TwoPerLocationInTEST3Location.class.getSimpleName(), TestFixedModule.class, AbstractFixedModuleTest.class, TwoPerLocationInTEST3Location.class);
 		processBatch(0, 1.0, JemoPluginManager.PluginManagerModule.class.getName());
 		
 		assertNull(ACTIVE_MODULES.get(TwoPerLocationInTEST3Location.class.getName()));

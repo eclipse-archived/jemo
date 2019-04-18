@@ -1254,19 +1254,19 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
     }
 
     @Override
-    public Set<String> listModules() {
+    public Set<String> listPlugins() {
         //this should work with Azure Blob storage
         return executeFunction(rt -> {
-            HashSet<String> moduleList = new HashSet<>();
+            HashSet<String> plugins = new HashSet<>();
             getModuleContainer().listBlobs().forEach(b -> {
                 if (b instanceof CloudBlockBlob) {
                     CloudBlockBlob cb = CloudBlockBlob.class.cast(b);
                     if (cb.getName().endsWith(".jar")) {
-                        moduleList.add(cb.getName());
+                        plugins.add(cb.getName());
                     }
                 }
             });
-            return moduleList;
+            return plugins;
         }, this);
     }
 
@@ -1827,4 +1827,12 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
         return terraformDirPath;
     }
 
+    @Override
+    public void removePluginFiles(String pluginJarFileName) {
+        remove(null, pluginJarFileName);
+        remove(null, pluginJarFileName + ".installed");
+        remove(null, pluginJarFileName + ".modulelist");
+        delete(getDefaultCategory(), pluginJarFileName + ".classlist.moduledata");
+        delete(getDefaultCategory(), pluginJarFileName + ".crc32.moduledata");
+    }
 }

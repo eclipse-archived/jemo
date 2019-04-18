@@ -23,10 +23,10 @@ import java.util.logging.Logger;
  * @author christopher stura
  */
 public class ModuleMetaData {
-	private int id = 0;
-	private double version = 0.0;
-	private String name = null;
-	private Logger log = null;
+	private int id;
+	private double version;
+	private String name;
+	private Logger log;
 
 	public ModuleMetaData(int id,double version,String name,Logger log) {
 		this.id = id;
@@ -66,4 +66,5 @@ public class ModuleMetaData {
 	public void setLog(Logger log) {
 		this.log = log;
 	}
+
 }

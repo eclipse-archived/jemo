@@ -608,6 +608,7 @@ public abstract class AbstractJemo {
                             scheduleMsg.setModuleClass(Jemo.class.getName());
                             scheduleMsg.setPluginId(m.getId());
                             scheduleMsg.getAttributes().put("module_class", m.getImplementation());
+                            scheduleMsg.setPluginVersion(moduleVersion);
                             scheduleMsg.send(JemoMessage.LOCATION_LOCALLY);
                             return null;
                         });
@@ -627,8 +628,8 @@ public abstract class AbstractJemo {
                 scheduleMsg.setModuleClass(Jemo.class.getName());
                 scheduleMsg.setPluginId(moduleId);
                 scheduleMsg.getAttributes().put("module_class", moduleImplementation);
-                scheduleMsg.send(targetInstanceQueueUrl);
                 scheduleMsg.setPluginVersion(version);
+                scheduleMsg.send(targetInstanceQueueUrl);
                 return null;
             });
         });

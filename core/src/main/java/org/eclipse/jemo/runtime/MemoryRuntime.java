@@ -276,7 +276,7 @@ public class MemoryRuntime implements CloudRuntime {
 	public void log(List<CloudLogEvent> eventList) {} //writing logs to memory makes no sense.
 
 	@Override
-	public Set<String> listModules() {
+	public Set<String> listPlugins() {
 		return readAll(CloudBlob.class, MODULE_STORAGE_PATH).map(cb -> cb.getKey())
 			.collect(Collectors.toSet());
 	}
@@ -608,6 +608,11 @@ public class MemoryRuntime implements CloudRuntime {
 	@Override
 	public void removeModule(String pluginFile) {
 		remove(MODULE_STORAGE_PATH,pluginFile);
+	}
+
+	@Override
+	public void removePluginFiles(String pluginJarFileName) {
+		remove(MODULE_STORAGE_PATH, pluginJarFileName);
 	}
 
 }

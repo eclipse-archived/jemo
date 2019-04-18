@@ -175,7 +175,13 @@ public class JemoQueueListener extends Thread {
 			} else {
 				//now if we are to submit this we need to check if the execute limits are respected on this instance.
 				JemoApplicationMetaData app = jemoServer.getPluginManager().getApplication(msg.getPluginId(), msg.getPluginVersion());
-				//get the current execution count for this instance.
+
+				if (app == null) {
+					// The app is deleted or deactivated, therefore there is nothing to submit
+					return;
+				}
+
+				//get the current execution count for this instance
 				ModuleLimit appLimits = app.getLimits().get(msg.getModuleClass());
 				if(appLimits == null || (appLimits.getEventFrequency() == null && appLimits.getMaxActiveEventsPerGSM() <= 0 && appLimits.getMaxActiveEventsPerLocation() <= 0 && appLimits.getMaxActiveEventsPerInstance() <= 0)) {
 					submitMessage(msg); //now limits apply and neither does a defined execution frequency.
@@ -218,13 +224,18 @@ public class JemoQueueListener extends Thread {
 	private void queueMessage(JemoMessage msg) {
 		DELAYED_MESSAGE_QUEUE.add(msg);
 	}
-	
+
 	private void submitMessage(JemoMessage msg) {
-		//so ideally we would write the execution data at this point in the processing as that would make the counters more accurate.
-		final String moduleClass = (msg.getModuleClass().equals(Jemo.class.getName()) && msg.getAttributes().containsKey("module_class")) ? (String)msg.getAttributes().get("module_class") : msg.getModuleClass();
-		jemoServer.getPluginManager().writeExecuteModuleEvent(msg.getPluginId(), msg.getPluginVersion(), moduleClass);
+		//If there are two versions 1.0 and 2.0 of the same plugin,
+		// then if 'writeExecuteModuleEvent' was called outside of the submitted lamda the following bug would occur:
+		// writeExecuteModuleEvent increases the counter for version 1.0,
+		// then the processMessage method changes the version from 1.0 to 2.0
+		// and then deleteExecuteModuleEvent decreases the counter for version 2.0.
+
+        final String moduleClass = (msg.getModuleClass().equals(Jemo.class.getName()) && msg.getAttributes().containsKey("module_class")) ? (String)msg.getAttributes().get("module_class") : msg.getModuleClass();
 		jemoServer.getEVENT_EXECUTOR().submit(()-> {
 			try {
+                jemoServer.getPluginManager().writeExecuteModuleEvent(msg.getPluginId(), msg.getPluginVersion(), moduleClass);
 				jemoServer.LOG(Level.FINE,"QUEUE [%s] executed %d submitted %d", queueUrl, executed.addAndGet(1), submitted.get());
 				processMessage(msg);
 				jemoServer.LOG(Level.FINE,"QUEUE [%s] executed %d submitted %d finished %s", queueUrl, executed.decrementAndGet(), submitted.decrementAndGet(), msg.getAttributes().toString());

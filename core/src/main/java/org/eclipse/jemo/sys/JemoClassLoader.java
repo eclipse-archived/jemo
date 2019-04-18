@@ -599,7 +599,7 @@ public class JemoClassLoader extends URLClassLoader {
 	 */
 	public Module lookupModule(final int moduleId,final String moduleClassName) {
 		return Util.F(null, p -> {
-			Object jemomodule = Util.runStaticMethod(Object.class, "org.eclipse.jemo.sys.JemoPluginManager", "getModuleByClassName", moduleId, moduleClassName);
+			Object jemomodule = Util.runStaticMethod(Object.class, "org.eclipse.jemo.sys.JemoPluginManager", "loadModuleByClassName", moduleId, moduleClassName);
 			
 			return Util.runMethod(jemomodule, Module.class, "getModule");
 		});
