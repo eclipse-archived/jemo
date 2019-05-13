@@ -18,7 +18,6 @@ package org.eclipse.jemo;
 
 import org.eclipse.jemo.internal.model.*;
 import org.eclipse.jemo.internal.model.JemoMessage;
-import org.eclipse.jemo.sys.JemoPluginManager;
 import org.eclipse.jemo.sys.auth.JemoUser;
 import org.eclipse.jemo.sys.internal.Util;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -408,7 +407,7 @@ public class TestCloudRuntime extends JemoBaseTest {
             try {
                 runtime.pollQueue(QUEUE_ID + "_fake", (msg1) -> {
                 });
-                assertFalse(runtime.getClass().getSimpleName(), true);
+                fail(runtime.getClass().getSimpleName());
             } catch (QueueDoesNotExistException ex) {
                 assertNotNull(runtime.getClass().getSimpleName(), ex);
             }

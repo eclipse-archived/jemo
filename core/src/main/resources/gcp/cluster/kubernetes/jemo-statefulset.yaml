@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jemo
+spec:
+  selector:
+    matchLabels:
+      app: jemo
+  serviceName: "jemo"
+  replicas: _JEMO_REPLICAS_
+  template:
+    metadata:
+      labels:
+        app: jemo
+    spec:
+      containers:
+        - name: jemo
+          volumeMounts:
+            - name: service-account-credentials-volume
+              mountPath: /etc/gcp
+              readOnly: true
+          image: eclipse/jemo:1.0.3
+          imagePullPolicy: Always
+          env:
+            - name: eclipse.jemo.gcp.region
+              value: "_REGION_"
+            - name: eclipse.jemo.cloud
+              value: "GCP"
+            - name: eclipse.jemo.http.port
+              value: "80"
+            - name: eclipse.jemo.https.port
+              value: "443"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /etc/gcp/sa_credentials.json
+          ports:
+            - containerPort: 80
+      volumes:
+      - name: service-account-credentials-volume
+        secret:
+          secretName: jemo-user-cred
+          items:
+          - key: sa_json
+            path: sa_credentials.json

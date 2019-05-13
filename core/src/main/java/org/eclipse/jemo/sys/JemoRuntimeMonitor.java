@@ -22,7 +22,6 @@ import org.eclipse.jemo.internal.model.*;
 import org.eclipse.jemo.sys.JemoPluginManager.PluginManagerModule;
 import org.eclipse.jemo.sys.auth.JemoUser;
 import org.eclipse.jemo.sys.internal.Util;
-import org.jetbrains.annotations.NotNull;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -152,7 +151,7 @@ public class JemoRuntimeMonitor {
         }
 
         @Override
-        public int compareTo(@NotNull Object o) {
+        public int compareTo(Object o) {
             Plugin that = (Plugin)o;
             return this.pluginInfo.compareTo(that.pluginInfo);
         }
@@ -179,7 +178,7 @@ public class JemoRuntimeMonitor {
             }
 
             @Override
-            public int compareTo(@NotNull Object o) {
+            public int compareTo(Object o) {
                 PluginInfo that = (PluginInfo)o;
                 if (this.id != that.id) {
                     return this.id - that.id;

@@ -104,14 +104,12 @@ import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.util.Config;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.HmacUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.fluent.Form;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.client.fluent.Response;
 import org.apache.http.entity.ContentType;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * TODO: we need to bring the test coverage on the Azure Runtime to 100% right now there are no tests and this is bad.
@@ -186,15 +184,6 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
         LOG_WORKSPACE = readProperty(PROP_LOG_WORKSPACE, properties, "jemo-log-workspace");
         KEY_VAULT = readProperty(PROP_KEYVAULT, properties, "jemokv");
         MSG_MODEL = MESSAGE_MODEL.valueOf(readProperty(PROP_MSG_MODEL, properties, QUEUE.name()));
-    }
-
-    private static String readProperty(String propertyName, Properties properties, String defaultValue) {
-        final String value = readParameterFromJvmOrEnv(propertyName);
-        if (value != null) {
-            return value;
-        }
-
-        return properties == null || properties.getProperty(propertyName) == null ? defaultValue : properties.getProperty(propertyName);
     }
 
     static class AzureCredentials {
@@ -327,7 +316,6 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
         });
     }
 
-    @NotNull
     private HttpResponse sendRequest(HttpMode httpMode, String uri, String requestBody) {
         return Util.F(null, x -> {
             final String authToken = getAuthToken();
@@ -345,7 +333,6 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
         });
     }
 
-    @NotNull
     private Request createRequest(HttpMode httpMode, String uri) {
         switch (httpMode) {
             case GET:
@@ -1607,7 +1594,6 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
      *
      * @return
      */
-    @NotNull
     private String getLogWorkSpaceLocationBasedOnRegion(String region) {
         return AKS_REGION_TO_LOG_WORKSPACE_REGION.getOrDefault(region, "uksouth");
     }
@@ -1786,7 +1772,6 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
         storePropertiesFile(propertiesFromFile);
     }
 
-    @NotNull
     private Path prepareTerraformFiles(SetupParams setupParams) throws IOException {
         final String terraformDir = getTerraformClusterDir();
         final Path terraformDirPath = Paths.get(terraformDir);
@@ -1835,4 +1820,11 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
         delete(getDefaultCategory(), pluginJarFileName + ".classlist.moduledata");
         delete(getDefaultCategory(), pluginJarFileName + ".crc32.moduledata");
     }
+
+    @Override
+    public String isCliInstalled() {
+        final boolean isInstalled = isCommandInstalled("az --help");
+        return isInstalled ? null : "Please install 'az'. Instructions on https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest";
+    }
+
 }

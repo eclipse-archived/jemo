@@ -137,6 +137,7 @@ public class JemoLogFormatter extends Formatter {
 
         String[] loggerName = record.getLoggerName().split("\\:");
         CloudLogEvent logEvent = new CloudLogEvent(logLine.toString());
+        logEvent.setLevel(record.getLevel().getLocalizedName());
         if (loggerName.length == 3) { //if we cannot identify a module then this will go to the default log.
             logEvent.setModuleId(Integer.parseInt(loggerName[0]));
             logEvent.setModuleVersion(Double.parseDouble(loggerName[1]));

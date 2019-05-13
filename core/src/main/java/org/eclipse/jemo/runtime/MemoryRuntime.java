@@ -615,4 +615,9 @@ public class MemoryRuntime implements CloudRuntime {
 		remove(MODULE_STORAGE_PATH, pluginJarFileName);
 	}
 
+	@Override
+	public String isCliInstalled() {
+		return null;
+	}
+
 }

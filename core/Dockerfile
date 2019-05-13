@@ -1,4 +1,4 @@
-FROM openjdk:8-jre-alpine
+FROM openjdk:8-jre
 WORKDIR /
 ADD target/jemo-*.jar jemo.jar
 EXPOSE 80 443

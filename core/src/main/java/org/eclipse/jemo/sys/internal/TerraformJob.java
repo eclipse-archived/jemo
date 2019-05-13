@@ -3,13 +3,13 @@ package org.eclipse.jemo.sys.internal;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.eclipse.jemo.sys.JemoRuntimeSetup;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static java.lang.Boolean.FALSE;
@@ -24,6 +24,8 @@ public class TerraformJob {
     private final String varsFilePath;
     private JemoRuntimeSetup.SetupError error;
     private TerraformResult result;
+    private TimeUnit delayTimeUnit = TimeUnit.MINUTES;
+    private long delayTime = 0;
 
     /**
      * @param dirPath the directory under which the terraform templates are stored.
@@ -59,6 +61,8 @@ public class TerraformJob {
         if (!applyResult[1].isEmpty()) {
             error = new JemoRuntimeSetup.SetupError(JemoRuntimeSetup.SetupError.Code.TERRAFORM_APPLY_ERROR, applyResult[1]);
             return this;
+        } else if (delayTime > 0) {
+            Util.B(null, x -> delayTimeUnit.sleep(delayTime));
         }
 
         result = TerraformResult.fromOutput(applyResult[0]);
@@ -96,7 +100,12 @@ public class TerraformJob {
         return result;
     }
 
-    @NotNull
+    public TerraformJob withDelay(TimeUnit delayTimeUnit, long delayTime) {
+        this.delayTimeUnit = delayTimeUnit;
+        this.delayTime = delayTime;
+        return this;
+    }
+
     private static String parseId(String line) {
         final String startTag = "(ID: ";
         final int start = line.indexOf(startTag);

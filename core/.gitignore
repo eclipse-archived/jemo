@@ -5,6 +5,7 @@
 .terraform*
 /azure
 /aws
+/gcp
 terraform.tfstate
 terraform.tfstate.backup
 

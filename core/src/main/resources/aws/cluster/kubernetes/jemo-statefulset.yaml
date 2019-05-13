@@ -15,9 +15,9 @@ spec:
     spec:
       containers:
         - name: jemo
-          image: eclipse/jemo:1.0.2
+          image: eclipse/jemo:1.0.3
           env:
-            - name: eclipse.jemo.csp.region
+            - name: eclipse.jemo.aws.region
               value: "_REGION_"
             - name: eclipse.jemo.cloud
               value: "AWS"

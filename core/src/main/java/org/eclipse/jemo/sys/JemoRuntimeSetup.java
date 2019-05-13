@@ -25,7 +25,6 @@ import org.eclipse.jemo.sys.internal.TerraformJob;
 import org.eclipse.jemo.sys.internal.TerraformJob.TerraformResult;
 import org.eclipse.jemo.sys.internal.Util;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.jetbrains.annotations.NotNull;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -253,13 +252,20 @@ public class JemoRuntimeSetup {
             return;
         }
 
-        if (!Util.isKubectlInstalled()) {
+        if (!Util.isCommandInstalled("kubectl --help")) {
             respondWithJson(400, response, new SetupError(KUBECTL_NOT_INSTALLED, null));
             return;
         }
 
         final SetupParams setupParams = Jemo.fromJSONString(SetupParams.class, Util.toString(request.getInputStream()));
         final CloudRuntime cloudRuntime = CloudProvider.getRuntimeByName(setupParams.csp);
+
+        final String cliInstalled = cloudRuntime.isCliInstalled();
+        if (cliInstalled != null) {
+            respondWithJson(400, response, new SetupError(CLI_NOT_INSTALLED, cliInstalled));
+            return;
+        }
+
         TERRAFORM_JOB_OUTPUT = new StringBuilder();
         EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
         TERAFORM_JOB_FUTURE = EXECUTOR_SERVICE.submit(() -> Util.F(null, x -> cloudRuntime.createCluster(setupParams, TERRAFORM_JOB_OUTPUT)));
@@ -297,7 +303,7 @@ public class JemoRuntimeSetup {
         respondWithJson(200, response, terraformJobResponse);
     }
 
-    private static void getInstallationResult(AbstractJemo jemoServer, HttpServletRequest request, HttpServletResponse response) throws ExecutionException, InterruptedException, IOException {
+    private static void getInstallationResult(AbstractJemo jemoServer, HttpServletRequest request, HttpServletResponse response) throws IOException {
         TerraformJobResponse installResponse;
         try {
             installResponse = generateTerraformJobStatusResponse();
@@ -317,7 +323,6 @@ public class JemoRuntimeSetup {
         respondWithJson(200, response, installResponse);
     }
 
-    @NotNull
     private static TerraformJobResponse generateTerraformJobStatusResponse() throws InterruptedException, ExecutionException {
         if (TERAFORM_JOB_FUTURE == null) {
             return new TerraformJobResponse(NOT_RUN);
@@ -431,7 +436,14 @@ public class JemoRuntimeSetup {
         }
 
         public enum Code {
-            TERRAFORM_NOT_INSTALLED, TERRAFORM_INIT_ERROR, TERRAFORM_PLAN_ERROR, TERRAFORM_APPLY_ERROR, TERRAFORM_DESTROY_ERROR, KUBECTL_NOT_INSTALLED, OTHER
+            TERRAFORM_NOT_INSTALLED,
+            TERRAFORM_INIT_ERROR,
+            TERRAFORM_PLAN_ERROR,
+            TERRAFORM_APPLY_ERROR,
+            TERRAFORM_DESTROY_ERROR,
+            KUBECTL_NOT_INSTALLED,
+            CLI_NOT_INSTALLED,
+            OTHER
         }
     }
 

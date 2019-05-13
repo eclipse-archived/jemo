@@ -29,6 +29,7 @@ public class CloudLogEvent implements Serializable {
 	private int moduleId = -1;
 	private String moduleName = null;
 	private double moduleVersion = 1.0;
+	private String level;
 	
 	public CloudLogEvent(String message) {
 		this.message = message;
@@ -75,7 +76,15 @@ public class CloudLogEvent implements Serializable {
 	public void setModuleVersion(double moduleVersion) {
 		this.moduleVersion = moduleVersion;
 	}
-	
+
+	public String getLevel() {
+		return level;
+	}
+
+	public void setLevel(String level) {
+		this.level = level;
+	}
+
 	@JsonIgnore
 	public CloudLogEvent withModuleId(int moduleId) {
 		setModuleId(moduleId);

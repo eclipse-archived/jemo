@@ -241,12 +241,7 @@ public abstract class AbstractJemo {
     }
 
     public void storeParamSet(String paramSetName) {
-        Properties properties = Util.readPropertiesFile();
-        if (properties == null) {
-            properties = new Properties();
-        }
-        properties.setProperty(PARAM_SET_NAME, paramSetName);
-        Util.storePropertiesFile(properties);
+        Util.addJemoProperty(PARAM_SET_NAME, paramSetName);
     }
 
     private void readParameters(CloudRuntime cloudRuntime) {

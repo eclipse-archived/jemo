@@ -112,7 +112,6 @@ import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.models.*;
 import io.kubernetes.client.util.Config;
 import org.eclipse.jemo.sys.JemoRuntimeSetup;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.math.BigInteger;
@@ -155,7 +154,9 @@ public class AmazonAWSRuntime implements CloudRuntime {
     private static AWSCredentialsProvider AWS_CREDENTIALS_PROVIDER = null;
     private static final ExecutorService EVENT_PROCESSOR = Executors.newCachedThreadPool();
     private static final String[] DYNAMO_SYSTEM_TABLES = new String[]{"eclipse_jemo_module_configuration", "eclipse_jemo_security_groups", "eclipse_jemo_security_users", "eclipse_jemo_modules"};
+    public static final String AWS_REGION_PROP = "eclipse.jemo.aws.region";
     private static String AWSREGION;
+
     private String arn;
     private static final String[] ACTION_NAMES = new String[]{
 
@@ -408,9 +409,9 @@ public class AmazonAWSRuntime implements CloudRuntime {
     private String S3_PLUGIN_BUCKET;
 
     public AmazonAWSRuntime() {
-        AWSREGION = System.getProperty("eclipse.jemo.csp.region");
+        AWSREGION = System.getProperty("eclipse.jemo.aws.region");
         if (AWSREGION == null) {
-            AWSREGION = System.getenv("eclipse.jemo.csp.region");
+            AWSREGION = System.getenv("eclipse.jemo.aws.region");
         }
     }
 
@@ -1625,7 +1626,12 @@ public class AmazonAWSRuntime implements CloudRuntime {
         delete(getDefaultCategory(), pluginJarFileName + ".crc32");
     }
 
-    @NotNull
+    @Override
+    public String isCliInstalled() {
+        final boolean isInstalled = isCommandInstalled("aws --help");
+        return isInstalled ? null : "Please install 'aws'. Instructions on https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html";
+    }
+
     private Path prepareTerraformFiles(JemoRuntimeSetup.SetupParams setupParams) throws IOException {
         final String terraformDir = getTerraformClusterDir();
         final Path terraformDirPath = Paths.get(terraformDir);
@@ -1687,7 +1693,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
                                 "  groups:\n" +
                                 "    - system:bootstrappers\n" +
                                 "    - system:nodes\n");
-        coreV1Api.createNamespacedConfigMap("kube-system", configMap, null);
+        coreV1Api.createNamespacedConfigMap("kube-system", configMap, null, null, null);
 
         reportAndLog(builder, "Creating the jemo pods...");
         final V1StatefulSet v1StatefulSet = new V1StatefulSet()
@@ -1704,15 +1710,15 @@ public class AmazonAWSRuntime implements CloudRuntime {
                                         .containers(asList(
                                                 new V1Container()
                                                         .name("jemo")
-                                                        .image("eclipse/jemo:1.0.2")
+                                                        .image("eclipse/jemo:1.0.3")
                                                         .env(asList(
-                                                                new V1EnvVar().name(REGION.label()).value(AWSREGION),
+                                                                new V1EnvVar().name(AWS_REGION_PROP).value(AWSREGION),
                                                                 new V1EnvVar().name(CLOUD.label()).value("AWS"),
                                                                 new V1EnvVar().name(HTTP_PORT.label()).value("80"),
                                                                 new V1EnvVar().name(HTTPS_PORT.label()).value("443")))
                                                         .ports(singletonList(new V1ContainerPort().containerPort(80)))
                                         )))));
-        appsV1Api.createNamespacedStatefulSet("default", v1StatefulSet, null);
+        appsV1Api.createNamespacedStatefulSet("default", v1StatefulSet, null, null, null);
 
         long start = System.currentTimeMillis();
         long duration;
@@ -1737,7 +1743,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
                         ))
                         .putSelectorItem("app", "jemo")
                         .type("LoadBalancer"));
-        coreV1Api.createNamespacedService("default", jemoLoadBalancerService, null);
+        coreV1Api.createNamespacedService("default", jemoLoadBalancerService, null, null, null);
 
         return getLoadBalancerUrl(coreV1Api);
     }

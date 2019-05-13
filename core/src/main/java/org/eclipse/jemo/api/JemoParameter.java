@@ -18,7 +18,6 @@ package org.eclipse.jemo.api;
 
 public enum JemoParameter {
     CLOUD("eclipse.jemo.cloud"),
-    REGION("eclipse.jemo.csp.region"),
     LOCATION("eclipse.jemo.location"),
     HTTPS_PORT("eclipse.jemo.https.port"),
     HTTP_PORT("eclipse.jemo.http.port"),

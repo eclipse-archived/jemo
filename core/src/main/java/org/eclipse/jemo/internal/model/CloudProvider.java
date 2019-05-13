@@ -43,6 +43,8 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 import static org.eclipse.jemo.api.JemoParameter.CLOUD;
+import static org.eclipse.jemo.internal.model.GCPRuntime.GCP_PROJECT_ID;
+import static org.eclipse.jemo.internal.model.GCPRuntime.GCP_SERVICE_ACCOUNT_ID;
 import static org.eclipse.jemo.sys.internal.Util.readParameterFromJvmOrEnv;
 import static java.util.Arrays.asList;
 
@@ -68,6 +70,13 @@ public enum CloudProvider {
             "https://azure.microsoft.com/",
             "Microsoft Azure",
             asList("tenant_id", "client_id", "client_secret")),
+
+    GCP("org.eclipse.jemo.internal.model.GCPRuntime",
+            null,
+            "GCP",
+            "https://cloud.google.com/",
+            "Google Cloud",
+            asList(GCP_PROJECT_ID, GCP_SERVICE_ACCOUNT_ID)),
 
     MEMORY("org.eclipse.jemo.runtime.MemoryRuntime",
             null,

@@ -380,4 +380,12 @@ public interface CloudRuntime {
      * @param pluginJarFileName the jar file name of the plugin under deletion
      */
     void removePluginFiles(String pluginJarFileName);
+
+    /**
+     * Checks if the CLI tools of this CSP is installed and in the Path.
+     *
+     * @return null if the cli is installed and in the path, otherwise a message instructing the user to install it
+     */
+    String isCliInstalled();
+
 }

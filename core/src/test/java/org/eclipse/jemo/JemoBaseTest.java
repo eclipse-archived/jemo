@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 import org.junit.AfterClass;
 
 import static org.eclipse.jemo.api.JemoParameter.*;
+import static org.eclipse.jemo.internal.model.AmazonAWSRuntime.AWS_REGION_PROP;
+import static org.eclipse.jemo.internal.model.GCPRuntime.GCP_REGION_PROP;
 
 /**
  *
@@ -56,7 +58,8 @@ public abstract class JemoBaseTest {
 	protected TestJemoServer jemoServer = null;
 	
 	protected JemoBaseTest(boolean serverInstance) {
-		System.setProperty(REGION.label(),"eu-west-1");
+		System.setProperty(AWS_REGION_PROP,"eu-west-1");
+		System.setProperty(GCP_REGION_PROP,"europe-west2-a");
 		System.setProperty(LOG_LOCAL.label(),"true");
 		System.setProperty(CLOUD.label(),"MEMORY");
 		System.setProperty("eclipse.jemo.azure.msg.model","QUEUE");

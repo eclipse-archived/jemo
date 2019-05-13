@@ -27,8 +27,6 @@ import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.models.V1LoadBalancerIngress;
 import io.kubernetes.client.models.V1Service;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -358,13 +356,13 @@ public class Util {
     }
 
     /**
-     * Checks if the "kubectl" command is in the path
+     * Checks if the specified command is in the path
      *
-     * @return true if "kubectl" command is in the path, false otherwise
+     * @return true if the specified command is in the path, false otherwise
      */
-    public static boolean isKubectlInstalled() {
+    public static boolean isCommandInstalled(String command) {
         try {
-            runProcess(null, "kubectl --help");
+            runProcess(null, command);
             return true;
         } catch (IOException e) {
             return false;
@@ -423,7 +421,6 @@ public class Util {
         return readParameterFromJvmOrEnv(name, null);
     }
 
-    @NotNull
     public static String getLoadBalancerUrl(CoreV1Api coreV1Api) throws ApiException {
         long start = System.currentTimeMillis();
         long duration;
@@ -442,7 +439,6 @@ public class Util {
         return ingresses == null || (ingresses.get(0).getHostname() == null && ingresses.get(0).getIp() == null);
     }
 
-    @NotNull
     private static String[] waitAndMonitorProcess(StringBuilder builder, Process process) throws IOException {
         final StringBuilder output = new StringBuilder();
         final StringBuilder error = new StringBuilder();
@@ -483,7 +479,6 @@ public class Util {
      *
      * @return the properties object
      */
-    @Nullable
     public static Properties readPropertiesFile() {
         if (!Files.exists(propertiesFilePath())) {
             return null;
@@ -504,7 +499,6 @@ public class Util {
      *
      * @param properties the properties object to store
      */
-    @Nullable
     public static void storePropertiesFile(Properties properties) {
         try {
             properties.store(new FileOutputStream(propertiesFilePath().toString()), null);
@@ -517,6 +511,21 @@ public class Util {
         return Paths.get(System.getProperty("user.home")).resolve("jemo.properties");
     }
 
+    /**
+     * Adds or updates a property in the jemo.properties file
+     *
+     * @param key the property key
+     * @param value the property value
+     */
+    public static void addJemoProperty(String key, String value) {
+        Properties propertiesFromFile = readPropertiesFile();
+        if (propertiesFromFile == null) {
+            propertiesFromFile = new Properties();
+        }
+        propertiesFromFile.setProperty(key, value);
+        storePropertiesFile(propertiesFromFile);
+    }
+
     public static byte[] readAllBytes(InputStream inputStream) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int nRead;
@@ -526,4 +535,23 @@ public class Util {
         }
         return buffer.toByteArray();
     }
+
+    /**
+     * Attempts to read a property set as JVM parameter or environmental variable.
+     * If not found, it looks at the specified properties object and if not found it returns the specified default value.
+     *
+     * @param propertyName the property name
+     * @param properties the properties map
+     * @param defaultValue the default value to be return if the property is not found anywhere
+     * @return the property value
+     */
+    public static String readProperty(String propertyName, Properties properties, String defaultValue) {
+        final String value = readParameterFromJvmOrEnv(propertyName);
+        if (value != null) {
+            return value;
+        }
+
+        return properties == null || properties.getProperty(propertyName) == null ? defaultValue : properties.getProperty(propertyName);
+    }
+
 }
