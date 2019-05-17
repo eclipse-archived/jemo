@@ -17,17 +17,17 @@
 package org.eclipse.jemo.api;
 
 public enum JemoParameter {
-    CLOUD("eclipse.jemo.cloud"),
-    LOCATION("eclipse.jemo.location"),
-    HTTPS_PORT("eclipse.jemo.https.port"),
-    HTTP_PORT("eclipse.jemo.http.port"),
-    MODULE_WHITELIST("eclipse.jemo.module.whitelist"),
-    MODULE_BLACKLIST("eclipse.jemo.module.blacklist"),
-    QUEUE_POLL_TIME("eclipse.jemo.queue.polltime"),
-    LOCATION_TYPE("eclipse.jemo.location.type"),
-    LOG_LOCAL("eclipse.jemo.log.local"),
-    LOG_OUTPUT("eclipse.jemo.log.output"),
-    LOG_LEVEL("eclipse.jemo.log.level");
+    CLOUD("ECLIPSE_JEMO_CLOUD"),
+    LOCATION("ECLIPSE_JEMO_LOCATION"),
+    HTTPS_PORT("ECLIPSE_JEMO_HTTPS_PORT"),
+    HTTP_PORT("ECLIPSE_JEMO_HTTP_PORT"),
+    MODULE_WHITELIST("ECLIPSE_JEMO_MODULE_WHITELIST"),
+    MODULE_BLACKLIST("ECLIPSE_JEMO_MODULE_BLACKLIST"),
+    QUEUE_POLL_TIME("ECLIPSE_JEMO_QUEUE_POLLTIME"),
+    LOCATION_TYPE("ECLIPSE_JEMO_LOCATION_TYPE"),
+    LOG_LOCAL("ECLIPSE_JEMO_LOG_LOCAL"),
+    LOG_OUTPUT("ECLIPSE_JEMO_LOG_OUTPUT"),
+    LOG_LEVEL("ECLIPSE_JEMO_LOG_LEVEL");
 
     private final String label;
 

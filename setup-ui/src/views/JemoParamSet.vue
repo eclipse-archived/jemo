@@ -75,13 +75,13 @@
                 let paramSet = null;
                 if (this.newParamSet) {
                     paramSet = {
-                        'eclipse.jemo.location': this.csp.name === 'MEMORY' ? 'JEMO' : this.csp.name,
-                        'eclipse.jemo.module.whitelist': '',
-                        'eclipse.jemo.module.blacklist': '',
-                        'eclipse.jemo.queue.polltime': '20000',
-                        'eclipse.jemo.location.type': 'ON-PREMISE',
-                        'eclipse.jemo.log.local': 'false',
-                        'eclipse.jemo.log.level': 'INFO',
+                        'ECLIPSE_JEMO_LOCATION': this.csp.name === 'MEMORY' ? 'JEMO' : this.csp.name,
+                        'ECLIPSE_JEMO_MODULE_WHITELIST': '',
+                        'ECLIPSE_JEMO_MODULE_BLACKLIST': '',
+                        'ECLIPSE_JEMO_QUEUE_POLLTIME': '20000',
+                        'ECLIPSE_JEMO_LOCATION_TYPE': 'ON-PREMISE',
+                        'ECLIPSE_JEMO_LOG_LOCAL': 'false',
+                        'ECLIPSE_JEMO_LOG_LEVEL': 'INFO',
                         'name': this.newParamSet
                     };
                     this.paramSets.push(paramSet);

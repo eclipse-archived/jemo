@@ -80,7 +80,7 @@ public class GCPRuntime implements CloudRuntime {
     private static GoogleCredential CREDENTIALS;
     private static String PROJECT_ID;
     private static final ExecutorService EVENT_PROCESSOR = Executors.newCachedThreadPool();
-    public static final String GCP_REGION_PROP = "eclipse.jemo.gcp.region";
+    public static final String GCP_REGION_PROP = "ECLIPSE_JEMO_GCP_REGION";
     private static String REGION;
 
     private final Set<String> requiredRoles = new HashSet<String>() {{
@@ -100,8 +100,6 @@ public class GCPRuntime implements CloudRuntime {
         Properties properties = readPropertiesFile();
         PROJECT_ID = readProperty(PROP_PROJECT_ID, properties, ServiceOptions.getDefaultProjectId());
         REGION = readProperty(GCP_REGION_PROP, properties, null);
-        System.out.println("Env properties: " + System.getenv());
-        LOG(Level.INFO, String.format("Detected PROJECT_ID: [%s] and REGION: [%s]", PROJECT_ID, REGION));
     }
 
     private Datastore datastore() {
@@ -931,7 +929,11 @@ public class GCPRuntime implements CloudRuntime {
     public void setInstallProperties(Map<String, String> properties) {
         final String userAccountId = properties.get("user_account_id");
         final Path jsonKeyFilePath = jsonKeyFilePath(userAccountId, PROJECT_ID);
-        Util.B(jsonKeyFilePath, Files::deleteIfExists);
+        Util.B(jsonKeyFilePath, path -> {
+            Files.deleteIfExists(path);
+            TimeUnit.SECONDS.sleep(1);
+        });
+
         Util.B(jsonKeyFilePath, (path) -> Files.copy(Paths.get(getTerraformInstallDir()).resolve(path.getFileName().toString()), path, REPLACE_EXISTING));
         addJemoProperty(PROP_PROJECT_ID, PROJECT_ID);
     }

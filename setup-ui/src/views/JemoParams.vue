@@ -79,36 +79,36 @@
                 loading: false,
                 params: {
                     location: {
-                        name: 'eclipse.jemo.location',
+                        name: 'ECLIPSE_JEMO_LOCATION',
                         description: 'the cloud location name'
                     },
                     locationType: {
-                        name: 'eclipse.jemo.location.type',
+                        name: 'ECLIPSE_JEMO_LOCATION_TYPE',
                         description: 'cloud or on-premise',
                         range: ['CLOUD', 'ON-PREMISE'],
                     },
                     whitelist: {
-                        name: 'eclipse.jemo.module.whitelist',
+                        name: 'ECLIPSE_JEMO_MODULE_WHITELIST',
                         description: 'list of module ids to allow'
                     },
                     blacklist: {
-                        name: 'eclipse.jemo.module.blacklist',
+                        name: 'ECLIPSE_JEMO_MODULE_BLACKLIST',
                         description: 'list of module ids to prevent'
                     },
                     polltime: {
-                        name: 'eclipse.jemo.queue.polltime',
+                        name: 'ECLIPSE_JEMO_QUEUE_POLLTIME',
                         description: 'the que poll interval'
                     },
                     logLocal: {
-                        name: 'eclipse.jemo.log.local',
+                        name: 'ECLIPSE_JEMO_LOG_LOCAL',
                         description: 'switch to local logging - default is cloud logging'
                     },
                     logOutput: {
-                        name: 'eclipse.jemo.log.output',
+                        name: 'ECLIPSE_JEMO_LOG_OUTPUT',
                         description: 'the local log file - default is STDOUT',
                     },
                     logLevel: {
-                        name: 'eclipse.jemo.log.level',
+                        name: 'ECLIPSE_JEMO_LOG_LEVEL',
                         description: 'the logging level',
                         range: ['ALL', 'CONFIG', 'FINE', 'FINER', 'FINEST', 'INFO', 'OFF', 'SEVERE', 'WARNING']
                     }

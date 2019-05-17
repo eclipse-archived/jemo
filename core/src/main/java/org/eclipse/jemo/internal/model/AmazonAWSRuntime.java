@@ -154,7 +154,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
     private static AWSCredentialsProvider AWS_CREDENTIALS_PROVIDER = null;
     private static final ExecutorService EVENT_PROCESSOR = Executors.newCachedThreadPool();
     private static final String[] DYNAMO_SYSTEM_TABLES = new String[]{"eclipse_jemo_module_configuration", "eclipse_jemo_security_groups", "eclipse_jemo_security_users", "eclipse_jemo_modules"};
-    public static final String AWS_REGION_PROP = "eclipse.jemo.aws.region";
+    public static final String AWS_REGION_PROP = "ECLIPSE_JEMO_AWS_REGION";
     private static String AWSREGION;
 
     private String arn;
@@ -409,10 +409,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
     private String S3_PLUGIN_BUCKET;
 
     public AmazonAWSRuntime() {
-        AWSREGION = System.getProperty("eclipse.jemo.aws.region");
-        if (AWSREGION == null) {
-            AWSREGION = System.getenv("eclipse.jemo.aws.region");
-        }
+        AWSREGION = Util.readParameterFromJvmOrEnv(AWS_REGION_PROP);
     }
 
     @Override
@@ -1710,7 +1707,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
                                         .containers(asList(
                                                 new V1Container()
                                                         .name("jemo")
-                                                        .image("eclipse/jemo:1.0.3")
+                                                        .image("eclipse/jemo:1.0.4")
                                                         .env(asList(
                                                                 new V1EnvVar().name(AWS_REGION_PROP).value(AWSREGION),
                                                                 new V1EnvVar().name(CLOUD.label()).value("AWS"),
