@@ -94,7 +94,7 @@ resource "aws_security_group_rule" "jemo-node-ingress-cluster" {
 data "aws_ami" "eks-worker" {
   filter {
     name   = "name"
-    values = ["amazon-eks-node-v*"]
+    values = ["amazon-eks-node-1.11-v20190220"]
   }
 
   most_recent = true

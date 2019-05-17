@@ -18,27 +18,27 @@ spec:
     spec:
       containers:
         - name: jemo
-          image: eclipse/jemo:1.0.3
+          image: eclipse/jemo:1.0.4
           env:
-            - name: eclipse.jemo.cloud
+            - name: ECLIPSE_JEMO_CLOUD
               value: "AZURE"
-            - name: eclipse.jemo.http.port
+            - name: ECLIPSE_JEMO_HTTP_PORT
               value: "80"
-            - name: eclipse.jemo.https.port
+            - name: ECLIPSE_JEMO_HTTPS_PORT
               value: "443"
-            - name: eclipse.jemo.azure.resourcegroup
+            - name: ECLIPSE_JEMO_AZURE_RESOURCE_GROUP
               value: "_RESOURCE_GROUP_"
-            - name: eclipse.jemo.azure.eventhub
+            - name: ECLIPSE_JEMO_AZURE_EVENTHUB
               value: "_EVENT_HUB_"
-            - name: eclipse.jemo.azure.db
+            - name: ECLIPSE_JEMO_AZURE_DB
               value: "_DB_"
-            - name: eclipse.jemo.azure.storage
+            - name: ECLIPSE_JEMO_AZURE_STORAGE
               value: "_STORAGE_"
-            - name: eclipse.jemo.azure.log-workspace
+            - name: ECLIPSE_JEMO_AZURE_LOG_WORKSPACE
               value: "_LOG_WORKSPACE_"
-            - name: eclipse.jemo.azure.keyvault
+            - name: ECLIPSE_JEMO_AZURE_KEYVAULT
               value: "_KEYVAULT_"
-            - name: eclipse.jemo.azure.msg.model
+            - name: ECLIPSE_JEMO_AZURE_MSG_MODEL
               value: "_MSG_MODEL_"
           ports:
             - containerPort: 80

@@ -127,13 +127,13 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
     private static final String CLIENT_ID_VAR_NAME = "client_id";
     private static final String CLIENT_SECRET_VAR_NAME = "client_secret";
 
-    private static final String PROP_RESOURCEGROUP = "eclipse.jemo.azure.resourcegroup";
-    private static final String PROP_EVENTHUB = "eclipse.jemo.azure.eventhub";
-    private static final String PROP_DB = "eclipse.jemo.azure.db";
-    private static final String PROP_STORAGE = "eclipse.jemo.azure.storage";
-    private static final String PROP_LOG_WORKSPACE = "eclipse.jemo.azure.log-workspace";
-    private static final String PROP_KEYVAULT = "eclipse.jemo.azure.keyvault";
-    private static final String PROP_MSG_MODEL = "eclipse.jemo.azure.msg.model";
+    private static final String PROP_RESOURCEGROUP = "ECLIPSE_JEMO_AZURE_RESOURCE_GROUP";
+    private static final String PROP_EVENTHUB = "ECLIPSE_JEMO_AZURE_EVENTHUB";
+    private static final String PROP_DB = "ECLIPSE_JEMO_AZURE_DB";
+    private static final String PROP_STORAGE = "ECLIPSE_JEMO_AZURE_STORAGE";
+    private static final String PROP_LOG_WORKSPACE = "ECLIPSE_JEMO_AZURE_LOG_WORKSPACE";
+    private static final String PROP_KEYVAULT = "ECLIPSE_JEMO_AZURE_KEYVAULT";
+    private static final String PROP_MSG_MODEL = "ECLIPSE_JEMO_AZURE_MSG_MODEL";
 
     private static final Set<String> REQUIRED_ACTIONS = new HashSet<>(asList(
             "Microsoft.Resources/subscriptions/read",
@@ -167,8 +167,8 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
     private String ENCRYPTION_KEY;
 
     public MicrosoftAzureRuntime() throws IOException {
-        if (System.getProperty("eclipse.jemo.azure.encryptionKey") != null) {
-            ENCRYPTION_KEY = System.getProperty("eclipse.jemo.azure.encryptionKey");
+        if (System.getProperty("ECLIPSE_JEMO_AZURE_ENCRYPTION_KEY") != null) {
+            ENCRYPTION_KEY = System.getProperty("ECLIPSE_JEMO_AZURE_ENCRYPTION_KEY");
         } else {
             final Path path = Paths.get("/kv/encryptionKey");
             if (Files.exists(path)) {

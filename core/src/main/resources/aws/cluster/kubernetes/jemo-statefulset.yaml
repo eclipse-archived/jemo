@@ -15,15 +15,16 @@ spec:
     spec:
       containers:
         - name: jemo
-          image: eclipse/jemo:1.0.3
+          image: eclipse/jemo:1.0.4
+          imagePullPolicy: Always
           env:
-            - name: eclipse.jemo.aws.region
+            - name: ECLIPSE_JEMO_AWS_REGION
               value: "_REGION_"
-            - name: eclipse.jemo.cloud
+            - name: ECLIPSE_JEMO_CLOUD
               value: "AWS"
-            - name: eclipse.jemo.http.port
+            - name: ECLIPSE_JEMO_HTTP_PORT
               value: "80"
-            - name: eclipse.jemo.https.port
+            - name: ECLIPSE_JEMO_HTTPS_PORT
               value: "443"
           ports:
             - containerPort: 80
