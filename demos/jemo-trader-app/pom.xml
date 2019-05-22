@@ -16,6 +16,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <jemo.username>[JEMO_USER]</jemo.username>
+        <jemo.password>[JEMO_PASSWORD]</jemo.password>
+        <jemo.id>1</jemo.id>
+        <jemo.endpoint>https://localhost</jemo.endpoint>
     </properties>
 
     <repositories>
@@ -73,9 +77,10 @@
                         <configuration>
                             <outputJar>${project.build.finalName}-jar-with-dependencies</outputJar>
                             <!-- Set the Jemo plugin id to upload here -->
-                            <id>1</id>
-                            <username>[JEMO_USER]</username>
-                            <password>[JEMO_PASSWORD]</password>
+                            <id>${jemo.id}</id>
+                            <username>${jemo.username}</username>
+                            <password>${jemo.password}</password>
+                            <endpoint>${jemo.endpoint}</endpoint>
                         </configuration>
                     </execution>
                 </executions>
