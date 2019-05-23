@@ -1857,7 +1857,7 @@ public class JemoPluginManager {
                                                             .map(e -> e.getKey())
                                                             .findAny().orElse(null);
                                                 }
-                                                jemoServer.LOG(Level.INFO, "[%s][%s] GSM Process Distribution %s selected target instance %s", ms.getApplication().getId(), ms.getModule(),
+                                                jemoServer.LOG(Level.FINE, "[%s][%s] GSM Process Distribution %s selected target instance %s", ms.getApplication().getId(), ms.getModule(),
                                                         instanceLocationMap.entrySet().stream()
                                                                 .map(e -> String.format("LOCATION: %s INSTANCE:[%s] TOTAL: %d", e.getValue(), e.getKey(), Stream.concat(newModuleStateList.stream(), appModuleState.stream()).filter(app -> app.getInstance().equals(e.getKey())).count()))
                                                                 .collect(Collectors.joining(" - ")), targetInstance
