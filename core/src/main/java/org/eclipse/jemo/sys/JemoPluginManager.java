@@ -1004,7 +1004,7 @@ public class JemoPluginManager {
             if (authHeader != null) {
                 String[] authPart = new String(Base64.getDecoder().decode(authHeader.split(" ")[1]), "UTF-8").split(":");
                 String username = authPart[0];
-                String password = authPart[1];
+                String password = authPart.length == 1 ? null : authPart[1];
                 if (username != null && password != null) {
                     JemoUser user = JemoAuthentication.getUser(username);
                     if (user != null && user.getPassword().equals(Util.md5(password))) {

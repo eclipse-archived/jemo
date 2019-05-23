@@ -3,7 +3,7 @@
         <v-toolbar-title class="headline text-uppercase">
 
             <span>Eclipse Jemo</span>
-            <span class="font-weight-light mx-2">Monitor UI</span>
+            <span class="font-weight-light mx-2">Admin UI</span>
         </v-toolbar-title>
         <v-spacer></v-spacer>
         <v-btn

@@ -1,36 +1,6 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <div>
 
-    <v-form v-if="!plugins">
-  <v-container>
-    <v-layout row wrap>
-
-      <v-flex xs12 sm6 md3>
-        <v-text-field
-          label="Jemo username"
-          v-model="username"
-        ></v-text-field>
-      </v-flex>
-
-      <v-flex xs12 sm6 md3>
-        <v-text-field
-          label="Jemo password"
-          v-model="password"
-          type="password"
-        ></v-text-field>
-      </v-flex>
-
-      <v-btn class="mx-4" @click="getPlugins" color="primary">
-          Submit
-      </v-btn>
-
-    </v-layout>
-  </v-container>
-</v-form>
-
-
-
-    <div v-else>
         <v-spacer></v-spacer>
         <div class="d-flex justify-between align-center mb-3">
           <v-btn @click="getPlugins" color="primary">Refresh</v-btn>
@@ -118,7 +88,7 @@
 
             </v-expansion-panel-content>
         </v-expansion-panel>
-    </div>
+
 
   </div>
 </template>
@@ -129,18 +99,22 @@
             return {
                 expand: [],
                 plugins: null,
-                username: "system.administrator@jemo.eclipse.org",
-                password: null
+                headers: this.$route.params.headers
             }
         },
+        watch: {
+          '$route'(to) {
+            if (to.name === 'plugins') {
+              this.getPlugins();
+            }
+          }
+        },
         created() {
+          this.getPlugins();
         },
         methods: {
             getPlugins() {
-              const headers = {
-                'Authorization': 'Basic ' + window.btoa(this.username + ':' + this.password)
-              };
-              this.$http.get('/jemo/admin/plugins', {headers: headers})
+              this.$http.get('plugins', {headers: this.headers})
                   .then(response => {
                       console.log(response);
                       this.plugins = response.data;
@@ -156,13 +130,10 @@
                 this.expand = [];
             },
             changePluginVersionStatus(pluginId, pluginVersion, currentState) {
-                const headers = {
-                   'Authorization': 'Basic ' + window.btoa(this.username + ':' + this.password)
-                };
                 const payload = {
                     enabled: !currentState
                 };
-                this.$http.patch('/jemo/admin/plugins/' + pluginId + '/' + pluginVersion, payload, {headers: headers})
+                this.$http.patch('plugins/' + pluginId + '/' + pluginVersion, payload, {headers: this.headers})
                     .then(response => {
                         console.log(response);
                         if (response.status === 200) {
@@ -174,10 +145,7 @@
                     });
             },
             deletePluginVersion(plugin, index) {
-                const headers = {
-                   'Authorization': 'Basic ' + window.btoa(this.username + ':' + this.password)
-                };
-                this.$http.delete('/jemo/admin/plugins/' + plugin.pluginInfo.id + '/' + plugin.pluginInfo.version, {headers: headers})
+                this.$http.delete('plugins/' + plugin.pluginInfo.id + '/' + plugin.pluginInfo.version, {headers: this.headers})
                     .then(response => {
                         console.log(response);
                         if (response.status === 204) {

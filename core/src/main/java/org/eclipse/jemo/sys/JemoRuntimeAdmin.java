@@ -26,6 +26,10 @@ import org.eclipse.jemo.sys.internal.Util;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -35,11 +39,14 @@ import java.util.stream.Collectors;
 import static org.eclipse.jemo.sys.JemoPluginManager.*;
 import static org.eclipse.jemo.sys.JemoPluginManager.PluginManagerModule.respondWithJson;
 import static org.eclipse.jemo.sys.internal.Util.readAllBytes;
+import static org.eclipse.jemo.sys.internal.Util.runProcess;
 
 public class JemoRuntimeAdmin {
 
     public static final String JEMO_ADMIN = "/jemo/admin";
     public static final String JEMO_PLUGINS = JEMO_ADMIN + "/plugins";
+    public static final String JEMO_CICD = JEMO_ADMIN + "/cicd";
+    public static final String JEMO_ADMIN_AUTH = JEMO_ADMIN + "/auth";
     private static final Pattern PLUGIN_VERSION_PATTERN = Pattern.compile(JEMO_PLUGINS + "/(\\d+)/(.*)");
 
     public static void processRequest(PluginManagerModule pluginManagerModule, JemoUser authUser, HttpServletRequest request, HttpServletResponse response) throws Throwable {
@@ -53,6 +60,13 @@ public class JemoRuntimeAdmin {
                 break;
             case "POST":
                 switch (request.getRequestURI()) {
+                    case JEMO_ADMIN_AUTH:
+                        // This method is called only after the user is authorised
+                        respondWithJson(201, response, null);
+                        break;
+                    case JEMO_CICD:
+                        deployFromGit(request, response);
+                        break;
                     default:
                         response.sendError(404, "No functionality is mapped to this endpoint yet" + request.getRequestURI());
                 }
@@ -134,6 +148,55 @@ public class JemoRuntimeAdmin {
         Jemo.stream(response.getOutputStream(), new ByteArrayInputStream(readAllBytes(in)));
     }
 
+    private static void deployFromGit(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        final DeployResource deployResource = Jemo.fromJSONString(DeployResource.class, Util.toString(request.getInputStream()));
+
+        if (!hasMandatoryField(response, deployResource,"repoUrl", deployResource.repoUrl)) return;
+        if (!hasMandatoryField(response, deployResource, "pluginId", deployResource.pluginId)) return;
+
+        final String authHeader = request.getHeader("Authorization");
+        final String[] credentials = new String(Base64.getDecoder().decode(authHeader.split(" ")[1]), "UTF-8").split(":");
+
+        final Path cicdDirPath = Paths.get("cicd/" + deployResource.pluginId);
+        Util.deleteDirectory(cicdDirPath.toFile());
+        Files.createDirectories(cicdDirPath);
+
+        final String jemoUrl = request.getRequestURL().substring(0, request.getRequestURL().indexOf("/jemo"));
+        final String branch = isNullOrEmpty(deployResource.branch) ? "master" : deployResource.branch;
+        final String subDir = isNullOrEmpty(deployResource.subDir) ? "" : "/" + deployResource.subDir;
+
+        final StringBuilder builder = new StringBuilder();
+        runProcess(builder, new String[]{
+                "/bin/sh", "-c", "git clone --single-branch --branch " + branch + " " + deployResource.repoUrl + " " + cicdDirPath.toString() + " ; " +
+                "mvn deploy -f " + cicdDirPath.toString() + subDir + "/pom.xml -Djemo.username=" + credentials[0] +
+                " -Djemo.password=" + credentials[1] + " -Djemo.id=" + deployResource.pluginId + " -Djemo.endpoint=" + jemoUrl
+        });
+
+        if (builder.indexOf("to environment: " + jemoUrl + " successful") == -1) {
+            deployResource.msg = "The deployment failed";
+            deployResource.logs = builder.toString();
+            respondWithJson(400, response, deployResource);
+        } else {
+            Util.deleteDirectory(cicdDirPath.toFile());
+            deployResource.msg = "The plugin was deployed successfully";
+            deployResource.logs = builder.toString();
+            respondWithJson(201, response, deployResource);
+        }
+    }
+
+    private static boolean hasMandatoryField(HttpServletResponse response, DeployResource deployResource, String field, String value) throws IOException {
+        if (isNullOrEmpty(value)) {
+            deployResource.msg = "Field " + field + " is mandatory";
+            respondWithJson(400, response, deployResource);
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean isNullOrEmpty(String s) {
+        return s == null || s.isEmpty();
+    }
+
     public static class Plugin implements Comparable {
 
         @JsonProperty
@@ -152,7 +215,7 @@ public class JemoRuntimeAdmin {
 
         @Override
         public int compareTo(Object o) {
-            Plugin that = (Plugin)o;
+            Plugin that = (Plugin) o;
             return this.pluginInfo.compareTo(that.pluginInfo);
         }
 
@@ -179,7 +242,7 @@ public class JemoRuntimeAdmin {
 
             @Override
             public int compareTo(Object o) {
-                PluginInfo that = (PluginInfo)o;
+                PluginInfo that = (PluginInfo) o;
                 if (this.id != that.id) {
                     return this.id - that.id;
                 } else {
@@ -189,4 +252,8 @@ public class JemoRuntimeAdmin {
         }
     }
 
+    public static class DeployResource {
+        @JsonProperty
+        private String service, repoUrl, branch, subDir, token, pluginId, msg, logs;
+    }
 }

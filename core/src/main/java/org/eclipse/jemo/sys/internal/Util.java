@@ -249,7 +249,11 @@ public class Util {
     }
 
     public static final boolean deleteDirectory(File dir) {
-        Arrays.asList(dir.listFiles()).stream().forEach(f -> {
+        if (!Files.exists(dir.toPath())) {
+            return false;
+        }
+
+        Arrays.asList(dir.listFiles()).forEach(f -> {
             if (f.isDirectory()) {
                 deleteDirectory(f);
             } else {
