@@ -7,7 +7,7 @@ import router from './router'
 Vue.config.productionTip = false;
 
 Vue.use(VueResource);
-Vue.http.options.root = '/jemo/setup';
+Vue.http.options.root = process.env.NODE_ENV === 'production' ? '/jemo/setup' : 'http://localhost/jemo/setup';
 
 new Vue({
   router,
