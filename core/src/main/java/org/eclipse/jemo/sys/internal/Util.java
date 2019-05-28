@@ -249,18 +249,21 @@ public class Util {
     }
 
     public static final boolean deleteDirectory(File dir) {
-        if (!Files.exists(dir.toPath())) {
-            return false;
-        }
-
-        Arrays.asList(dir.listFiles()).forEach(f -> {
-            if (f.isDirectory()) {
-                deleteDirectory(f);
-            } else {
-                f.delete();
-            }
-        });
-        return dir.delete();
+				if(dir != null) {
+					File[] fileList = dir.listFiles();
+					if(fileList != null && fileList.length > 0) {
+						Arrays.asList(fileList).stream().forEach(f -> {
+								if (f.isDirectory()) {
+										deleteDirectory(f);
+								} else {
+										f.delete();
+								}
+						});
+					}
+					return dir.delete();
+				}
+				
+				return true;
     }
 
     public static Set<Integer> parseIntegerRangeDefinition(final String rangeDefinition) {

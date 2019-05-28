@@ -128,7 +128,7 @@ public class ServerMessage {
 					.map(e -> CloudProvider.getInstance().getRuntime().getQueueId("JEMO-"+instanceLocationMap.get(e.getKey())+"-"+e.getKey()))
 					.orElse(locationQueue); //messages will always be sent however if no valid instance can be found they will be sent to the target location
 				final String fLocationQueue = locationQueue;
-				JemoPluginManager.getServerInstance().LOG(Level.INFO, "[ServerMessage][SEND] Selected %s current executing %d messages, execution map %s",locationQueue, gsmExecutionMap.entrySet().stream()
+				JemoPluginManager.getServerInstance().LOG(Level.FINE, "[ServerMessage][SEND] Selected %s current executing %d messages, execution map %s",locationQueue, gsmExecutionMap.entrySet().stream()
 					.filter(e -> CloudProvider.getInstance().getRuntime().getQueueId("JEMO-"+instanceLocationMap.get(e.getKey())+"-"+e.getKey()).equalsIgnoreCase(fLocationQueue)).map(e -> e.getValue()).findAny().orElse(0), gsmExecutionMap.toString());
 			}
 			transmitMessage(message, locationQueue, location);
