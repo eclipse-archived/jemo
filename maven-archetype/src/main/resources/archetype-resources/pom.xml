@@ -11,13 +11,16 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <jemo.username>${username}</jemo.username>
+        <jemo.password>${password}</jemo.password>
+        <jemo.id>${pluginId}</jemo.id>
+        <jemo.endpoint>${jemoEndpoint}</jemo.endpoint>
     </properties>
 
     <repositories>
         <repository>
             <id>jemo-local</id>
-            <!-- The default URL assumes Jemo runs locally. If not, please repalce it with the URL of a running Jemo instance. -->
-            <url>http://localhost/jemo</url>
+            <url>${jemoEndpoint}/jemo</url>
         </repository>
     </repositories>
 
@@ -68,9 +71,10 @@
                         <configuration>
                             <outputJar>${project.build.finalName}-jar-with-dependencies</outputJar>
                             <!-- Set the Jemo plugin id to upload here -->
-                            <id>${pluginId}</id>
-                            <username>${username}</username>
-                            <password>${password}</password>
+                            <id>${jemo.id}</id>
+                            <username>${jemo.username}</username>
+                            <password>${jemo.password}</password>
+                            <endpoint>${jemo.endpoint}</endpoint>
                         </configuration>
                     </execution>
                 </executions>
