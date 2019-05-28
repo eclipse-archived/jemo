@@ -169,7 +169,7 @@ public class JemoRuntimeSetup {
      */
     private static void loadFile(String requestUri, HttpServletResponse response) throws IOException {
         final String fileName = requestUri.isEmpty() || requestUri.equals("/") ? "/index.html" : requestUri;
-        final InputStream in = Jemo.class.getResourceAsStream("/setup" + fileName);
+        final InputStream in = Jemo.class.getResourceAsStream("/ui/setup" + fileName);
         Jemo.stream(response.getOutputStream(), new ByteArrayInputStream(readAllBytes(in)));
     }
 
