@@ -6,6 +6,7 @@
 /azure
 /aws
 /gcp
+/cicd
 terraform.tfstate
 terraform.tfstate.backup
 

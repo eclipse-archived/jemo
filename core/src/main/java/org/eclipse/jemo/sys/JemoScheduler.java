@@ -209,7 +209,7 @@ public class JemoScheduler extends Thread {
 			}
 			if(currentNomination != null && currentNomination.getInstanceId().equals(jemoServer.getINSTANCE_ID())) {
 				//1. we will need to know the module list for each active instance in the cluster.
-				jemoServer.LOG(Level.INFO, "[%s][%s] NOMINATED SCHEDULER IS %s - RUNNING STATUS IS %s", getClass().getSimpleName(), jemoServer.getINSTANCE_ID(), currentNomination.getInstanceId(), String.valueOf(RUNNING.get()));
+				jemoServer.LOG(Level.FINE, "[%s][%s] NOMINATED SCHEDULER IS %s - RUNNING STATUS IS %s", getClass().getSimpleName(), jemoServer.getINSTANCE_ID(), currentNomination.getInstanceId(), String.valueOf(RUNNING.get()));
 				//we need to know where things are being executed so we can filter out modules which are over their limits.
 				Set<String> activeInstanceList = jemoServer.getPluginManager().getActiveInstanceList();
 				Map<String,String> instanceLocationMap = jemoServer.getPluginManager().getInstanceLocationMap(activeInstanceList.toArray(new String[] {}));

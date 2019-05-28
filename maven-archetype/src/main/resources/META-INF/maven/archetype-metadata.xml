@@ -8,6 +8,7 @@
         <requiredProperty key="pluginId"/>
         <requiredProperty key="username"/>
         <requiredProperty key="password"/>
+        <requiredProperty key="jemoEndpoint"/>
     </requiredProperties>
 
     <fileSets>

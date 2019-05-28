@@ -80,7 +80,8 @@ import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 
-import static org.eclipse.jemo.sys.JemoRuntimeMonitor.JEMO_MONITOR;
+import static org.eclipse.jemo.sys.JemoRuntimeAdmin.JEMO_ADMIN;
+import static org.eclipse.jemo.sys.JemoRuntimeAdmin.JEMO_PLUGINS;
 import static org.eclipse.jemo.sys.JemoRuntimeSetup.JEMO_SETUP;
 
 /**
@@ -1003,7 +1004,7 @@ public class JemoPluginManager {
             if (authHeader != null) {
                 String[] authPart = new String(Base64.getDecoder().decode(authHeader.split(" ")[1]), "UTF-8").split(":");
                 String username = authPart[0];
-                String password = authPart[1];
+                String password = authPart.length == 1 ? null : authPart[1];
                 if (username != null && password != null) {
                     JemoUser user = JemoAuthentication.getUser(username);
                     if (user != null && user.getPassword().equals(Util.md5(password))) {
@@ -1023,10 +1024,7 @@ public class JemoPluginManager {
         public void process(HttpServletRequest request, HttpServletResponse response) throws Throwable {
             //before we allow anyone to proceed we need to check if their username and password is authenticated against the system.
             JemoUser authUser = authorise(request);
-            if (!"GET".equals(request.getMethod())
-                    && !request.getRequestURI().startsWith(JEMO_SETUP)
-                    && !request.getRequestURI().startsWith(JEMO_MONITOR)
-            ) {
+            if (!skipAuthorisation(request)) {
                 if (authUser == null) {
                     response.setStatus(401);
                     response.getOutputStream().close();
@@ -1070,8 +1068,8 @@ public class JemoPluginManager {
                 return;
             }
 
-            if (request.getRequestURI().startsWith(JEMO_MONITOR)) {
-                JemoRuntimeMonitor.processRequest(this, authUser, request, response);
+            if (request.getRequestURI().startsWith(JEMO_ADMIN)) {
+                JemoRuntimeAdmin.processRequest(this, authUser, request, response);
                 return;
             }
 
@@ -1268,6 +1266,12 @@ public class JemoPluginManager {
             } else {
                 response.sendError(405);
             }
+        }
+
+        private boolean skipAuthorisation(HttpServletRequest request) {
+            return ("GET".equals(request.getMethod()) && !request.getRequestURI().startsWith(JEMO_PLUGINS))
+                    || "OPTIONS".equals(request.getMethod())
+                    || request.getRequestURI().startsWith(JEMO_SETUP);
         }
 
         public static void respondWithJson(int statusCode, HttpServletResponse response, Object obj) throws IOException {
@@ -1857,7 +1861,7 @@ public class JemoPluginManager {
                                                             .map(e -> e.getKey())
                                                             .findAny().orElse(null);
                                                 }
-                                                jemoServer.LOG(Level.INFO, "[%s][%s] GSM Process Distribution %s selected target instance %s", ms.getApplication().getId(), ms.getModule(),
+                                                jemoServer.LOG(Level.FINE, "[%s][%s] GSM Process Distribution %s selected target instance %s", ms.getApplication().getId(), ms.getModule(),
                                                         instanceLocationMap.entrySet().stream()
                                                                 .map(e -> String.format("LOCATION: %s INSTANCE:[%s] TOTAL: %d", e.getValue(), e.getKey(), Stream.concat(newModuleStateList.stream(), appModuleState.stream()).filter(app -> app.getInstance().equals(e.getKey())).count()))
                                                                 .collect(Collectors.joining(" - ")), targetInstance

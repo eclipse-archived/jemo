@@ -1,26 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.apache.maven.plugins</groupId>
+    <groupId>org.eclipse.jemo</groupId>
     <artifactId>eclipse-jemo-maven-plugin</artifactId>
     <version>1.0</version>
     <packaging>maven-plugin</packaging>
-    
-    
+
+
+    <name>The Eclipse Jemo maven plugin</name>
+    <description>The maven plugin needed to deploy an Eclipse Jemo application on a Jemo cluster.</description>
+    <url>https://github.com/eclipse/jemo/tree/master/maven-plugin</url>
+
+    <licenses>
+        <license>
+            <name>Eclipse Public License 2.0</name>
+            <url>https://www.eclipse.org/legal/epl-2.0/</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Christopher Stura</name>
+            <email>christopher.stura@cloudreach.co.uk</email>
+            <organization>Cloudreach Limited Europe</organization>
+            <organizationUrl>https://www.cloudreach.com/</organizationUrl>
+            <roles>
+                <role>Eclipse Jemo Project Lead</role>
+                <role>Eclipse Jemo Committer</role>
+            </roles>
+            <url>https://www.eclipse.org/jemo/</url>
+        </developer>
+
+        <developer>
+            <name>Yannis Theocharis</name>
+            <email>ytheohar@gmail.com</email>
+            <organization>Aleph N Ltd</organization>
+            <roles>
+                <role>Eclipse Jemo Committer</role>
+            </roles>
+            <url>https://www.eclipse.org/jemo/</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/eclipse/jemo</url>
+        <connection>scm:git:git@github.com:eclipse/jemo.git</connection>
+        <developerConnection>scm:git:git@github.com:eclipse/jemo.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <url>https://github.com/eclipse/jemo</url>
+    </issueManagement>
+
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>9</version>
+    </parent>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
-    
+
     <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
         <repository>
-            <id>internal.repo</id>
-            <name>Temporary Staging Repository</name>
-            <url>file://${project.build.directory}/mvn-repo</url>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
-    
+
+
     <dependencies>
         <dependency>
             <groupId>org.apache.maven</groupId>
@@ -58,7 +116,7 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpmime</artifactId>
             <version>4.5.2</version>
-        </dependency> 
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
@@ -74,15 +132,14 @@
             <artifactId>jackson-annotations</artifactId>
             <version>2.4.4</version>
         </dependency>
-				<!-- https://mvnrepository.com/artifact/commons-codec/commons-codec -->
-				<dependency>
-						<groupId>commons-codec</groupId>
-						<artifactId>commons-codec</artifactId>
-						<version>1.10</version>
-				</dependency>
-
+        <!-- https://mvnrepository.com/artifact/commons-codec/commons-codec -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.10</version>
+        </dependency>
     </dependencies>
-    
+
     <build>
         <plugins>
             <plugin>
@@ -107,6 +164,58 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
             </plugin>
         </plugins>
     </build>
