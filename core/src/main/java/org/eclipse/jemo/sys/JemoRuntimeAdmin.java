@@ -53,12 +53,18 @@ public class JemoRuntimeAdmin {
         switch (request.getMethod()) {
             case "GET":
                 if (JEMO_PLUGINS.equals(request.getRequestURI())) {
+                    if (!authorise(authUser, response)) {
+                        return;
+                    }
                     getUploadedApps(response);
                 } else {
                     loadFile(request.getRequestURI().replaceAll(JEMO_ADMIN, ""), response);
                 }
                 break;
             case "POST":
+                if (!authorise(authUser, response)) {
+                    return;
+                }
                 switch (request.getRequestURI()) {
                     case JEMO_ADMIN_AUTH:
                         // This method is called only after the user is authorised
@@ -77,6 +83,9 @@ public class JemoRuntimeAdmin {
                 response.setHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Authorization, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
                 break;
             case "DELETE":
+                if (!authorise(authUser, response)) {
+                    return;
+                }
                 Matcher matcher;
                 if ((matcher = PLUGIN_VERSION_PATTERN.matcher(request.getRequestURI())).find()) {
                     deletePluginVersion(pluginManagerModule, authUser, Integer.parseInt(matcher.group(1)), matcher.group(2), response);
@@ -85,9 +94,15 @@ public class JemoRuntimeAdmin {
                 }
                 break;
             case "PUT":
+                if (!authorise(authUser, response)) {
+                    return;
+                }
                 response.sendError(404, "No functionality is mapped to this endpoint yet" + request.getRequestURI());
                 break;
             case "PATCH":
+                if (!authorise(authUser, response)) {
+                    return;
+                }
                 if ((matcher = PLUGIN_VERSION_PATTERN.matcher(request.getRequestURI())).find()) {
                     changeState(pluginManagerModule, authUser, Integer.parseInt(matcher.group(1)), matcher.group(2), request, response);
                 }
@@ -95,6 +110,15 @@ public class JemoRuntimeAdmin {
                 break;
             default:
                 response.sendError(400);
+        }
+    }
+
+    private static boolean authorise(JemoUser authUser, HttpServletResponse response) throws IOException {
+        if (authUser.isAdmin()) {
+            return true;
+        } else {
+            respondWithJson(401, response, "The user: " + authUser.getUsername() + "does not have admin permissions.");
+            return false;
         }
     }
 
@@ -151,7 +175,7 @@ public class JemoRuntimeAdmin {
     private static void deployFromGit(HttpServletRequest request, HttpServletResponse response) throws IOException {
         final DeployResource deployResource = Jemo.fromJSONString(DeployResource.class, Util.toString(request.getInputStream()));
 
-        if (!hasMandatoryField(response, deployResource,"repoUrl", deployResource.repoUrl)) return;
+        if (!hasMandatoryField(response, deployResource, "repoUrl", deployResource.repoUrl)) return;
         if (!hasMandatoryField(response, deployResource, "pluginId", deployResource.pluginId)) return;
 
         final String authHeader = request.getHeader("Authorization");
