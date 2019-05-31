@@ -5,15 +5,79 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.eclipse.jemo</groupId>
-    <artifactId>jemo-maven-archetype</artifactId>
+    <artifactId>eclipse-jemo-maven-archetype</artifactId>
     <version>1.1</version>
     <packaging>maven-archetype</packaging>
+
+    <name>The Eclipse Jemo maven archetype</name>
+    <description>The maven archetype that helps to create an Eclipse Jemo application with the proper pom file and an example class per Jemo development pattern.</description>
+    <url>https://github.com/eclipse/jemo/tree/master/maven-archetype</url>
+
+    <licenses>
+        <license>
+            <name>Eclipse Public License 2.0</name>
+            <url>https://www.eclipse.org/legal/epl-2.0/</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Christopher Stura</name>
+            <email>christopher.stura@cloudreach.co.uk</email>
+            <organization>Cloudreach Limited Europe</organization>
+            <organizationUrl>https://www.cloudreach.com/</organizationUrl>
+            <roles>
+                <role>Eclipse Jemo Project Lead</role>
+                <role>Eclipse Jemo Committer</role>
+            </roles>
+            <url>https://www.eclipse.org/jemo/</url>
+        </developer>
+
+        <developer>
+            <name>Yannis Theocharis</name>
+            <email>ytheohar@gmail.com</email>
+            <organization>Aleph N Ltd</organization>
+            <roles>
+                <role>Eclipse Jemo Committer</role>
+            </roles>
+            <url>https://www.eclipse.org/jemo/</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/eclipse/jemo</url>
+        <connection>scm:git:git@github.com:eclipse/jemo.git</connection>
+        <developerConnection>scm:git:git@github.com:eclipse/jemo.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <url>https://github.com/eclipse/jemo</url>
+    </issueManagement>
+
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>9</version>
+    </parent>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <archetype-packaging.version>3.0.1</archetype-packaging.version>
     </properties>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <build>
         <extensions>
@@ -23,5 +87,59 @@
                 <version>${archetype-packaging.version}</version>
             </extension>
         </extensions>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 </project>
