@@ -1,11 +1,16 @@
 <template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
-  <div>
+    <div>
 
         <v-spacer></v-spacer>
         <div class="d-flex justify-between align-center mb-3">
-          <v-btn @click="getPlugins" color="primary">Refresh</v-btn>
-          <v-btn @click="expandAll" color="secondary">Expand All</v-btn>
+            <v-btn @click="getPlugins" color="primary">Refresh</v-btn>
+            <v-btn @click="expandAll" color="secondary">Expand All</v-btn>
             <v-btn @click="colapseAll" color="green">Collapse All</v-btn>
+        </div>
+
+        <div v-if="plugins && plugins.length > 0">
+            <h4>Running Plugins</h4>
+            <br/>
         </div>
 
         <v-expansion-panel
@@ -18,11 +23,15 @@
                     <div><strong>id:</strong> {{plugin.pluginInfo.id}}</div>
                     <div><strong>name:</strong> {{plugin.pluginInfo.name}}</div>
                     <div><strong>version:</strong> {{plugin.pluginInfo.version}}</div>
-                    <v-btn @click.stop="changePluginVersionStatus(plugin.pluginInfo.id, plugin.pluginInfo.version, plugin.metaData.enabled)"
+                    <v-btn @click="changePluginVersionStatus(i, plugin.pluginInfo.id, plugin.pluginInfo.version, plugin.metaData.enabled)"
+                           :loading="loading[plugin.pluginInfo.id + '-' + plugin.pluginInfo.version + '-act']"
                            color="primary" flat
                     >{{plugin.metaData.enabled ? 'Deactivate' : 'Activate'}}
                     </v-btn>
-                    <v-btn @click.stop="deletePluginVersion(plugin, i)" color="red" flat>Delete</v-btn>
+                    <v-btn @click="deletePluginVersion(plugin, i)"
+                           :loading="loading[plugin.pluginInfo.id + '-' + plugin.pluginInfo.version + '-del']"
+                           color="red" flat>Delete
+                    </v-btn>
                 </template>
 
                 <v-data-table
@@ -89,8 +98,54 @@
             </v-expansion-panel-content>
         </v-expansion-panel>
 
+        <v-spacer></v-spacer>
 
-  </div>
+        <br/>
+        <br/>
+
+        <div v-if="pluginsPendingDeployment && pluginsPendingDeployment.length > 0">
+            <h4>Deployment History</h4>
+            <br/>
+
+            <v-expansion-panel
+                    v-model="expandPending"
+                    expand>
+                <v-expansion-panel-content
+                        v-for="(plugin,i) in pluginsPendingDeployment"
+                        :key="i">
+                    <template v-slot:header>
+                        <div><strong>id:</strong> {{plugin.pluginId}}</div>
+                        <div><strong>version:</strong> {{plugin.version}}</div>
+                        <div><strong>name:</strong> {{plugin.name}}</div>
+                        <div><strong>time:</strong> {{plugin.timestamp}}</div>
+                        <div><strong>repoUrl:</strong> {{plugin.repoUrl}}</div>
+                        <div><strong>branch:</strong> {{plugin.branch}}</div>
+                        <div><strong>subDir:</strong> {{plugin.subDir === '' ? '-' : plugin.subDir}}</div>
+                        <v-icon v-if="plugin.success" color="teal">done</v-icon>
+                        <v-icon v-else color="error">error</v-icon>
+                    </template>
+
+                    <v-data-table
+                            :headers="[{
+                        text: 'Logs',
+                        align: 'left',
+                        sortable: false,
+                        value: 'batch'
+                        }]"
+                            :items="Array.of(plugin.logs)"
+                            class="elevation-1"
+                            hide-actions>
+                        <template slot="items" slot-scope="props">
+                            <td>
+                                <pre>{{ props.item }}</pre>
+                            </td>
+                        </template>
+                    </v-data-table>
+                </v-expansion-panel-content>
+            </v-expansion-panel>
+        </div>
+
+    </div>
 </template>
 
 <script>
@@ -98,60 +153,86 @@
         data() {
             return {
                 expand: [],
+                expandPending: [],
                 plugins: null,
-                headers: this.$route.params.headers
+                headers: this.$route.params.headers,
+                loading: {},
+                pluginsPendingDeployment: []
             }
         },
         watch: {
-          '$route'(to) {
-            if (to.name === 'plugins') {
-              this.getPlugins();
+            '$route'(to) {
+                if (to.name === 'plugins') {
+                    this.getPlugins();
+                }
             }
-          }
         },
         created() {
-          this.getPlugins();
+            this.getPlugins();
         },
         methods: {
             getPlugins() {
-              this.$http.get('plugins', {headers: this.headers})
-                  .then(response => {
-                      console.log(response);
-                      this.plugins = response.data;
-                  }, response => {
-                      console.log(response);
-                      alert(response.data ? response.data : 'Wrong username or password.');
-                  });
+                this.$http.get('plugins', {headers: this.headers})
+                    .then(response => {
+                        console.log(response);
+                        this.plugins = response.data;
+                    }, response => {
+                        console.log(response);
+                        // alert(response.data ? response.data : 'Wrong username or password.');
+                    });
+                this.pollForPendingDeployments();
+            },
+            pollForPendingDeployments() {
+                this.$http.get('cicd/result', {headers: this.headers})
+                    .then(response => {
+                        console.log(response);
+                        this.pluginsPendingDeployment = response.data;
+                    }, response => {
+                        console.log(response);
+                        alert(response.data ? response.data : 'Wrong username or password.');
+                    });
             },
             expandAll() {
                 this.expand = [...Array(this.plugins.length).keys()].map(() => true);
+                this.expandPending = [...Array(this.pluginsPendingDeployment.length).keys()].map(() => true);
             },
             colapseAll() {
                 this.expand = [];
+                this.expandPending = [];
             },
-            changePluginVersionStatus(pluginId, pluginVersion, currentState) {
+            changePluginVersionStatus(index, pluginId, pluginVersion, currentState) {
+                this.expand[index] = !this.expand[index]
+                const label = pluginId + '-' + pluginVersion + '-act';
+                this.loading[label] = true;
                 const payload = {
                     enabled: !currentState
                 };
                 this.$http.patch('plugins/' + pluginId + '/' + pluginVersion, payload, {headers: this.headers})
                     .then(response => {
+                        this.loading[label] = false;
                         console.log(response);
                         if (response.status === 200) {
                             this.plugins = this.plugins.map(plugin => plugin.metaData.id === response.data.metaData.id ? response.data : plugin);
                         }
                     }, response => {
+                        this.loading[label] = false;
                         alert(response.data);
                         console.log(response);
                     });
             },
             deletePluginVersion(plugin, index) {
+                this.expand[index] = !this.expand[index]
+                const label = plugin.pluginInfo.id + '-' + plugin.pluginInfo.version + '-del';
+                this.loading[label] = true;
                 this.$http.delete('plugins/' + plugin.pluginInfo.id + '/' + plugin.pluginInfo.version, {headers: this.headers})
                     .then(response => {
+                        this.loading[label] = false;
                         console.log(response);
                         if (response.status === 204) {
                             this.plugins.splice(index, 1);
                         }
                     }, response => {
+                        this.loading[label] = false;
                         alert(response.data);
                     });
             }

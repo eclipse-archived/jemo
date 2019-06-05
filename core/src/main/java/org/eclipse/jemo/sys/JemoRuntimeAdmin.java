@@ -16,11 +16,13 @@
  ********************************************************************************/
 package org.eclipse.jemo.sys;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.eclipse.jemo.Jemo;
 import org.eclipse.jemo.internal.model.*;
 import org.eclipse.jemo.sys.JemoPluginManager.PluginManagerModule;
 import org.eclipse.jemo.sys.auth.JemoUser;
+import org.eclipse.jemo.sys.internal.SystemDB;
 import org.eclipse.jemo.sys.internal.Util;
 
 import javax.servlet.http.HttpServletRequest;
@@ -29,25 +31,27 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Base64;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.eclipse.jemo.sys.JemoPluginManager.*;
 import static org.eclipse.jemo.sys.JemoPluginManager.PluginManagerModule.respondWithJson;
-import static org.eclipse.jemo.sys.internal.Util.readAllBytes;
-import static org.eclipse.jemo.sys.internal.Util.runProcess;
+import static org.eclipse.jemo.sys.internal.Util.*;
 
 public class JemoRuntimeAdmin {
 
-    public static final String JEMO_ADMIN = "/jemo/admin";
-    public static final String JEMO_PLUGINS = JEMO_ADMIN + "/plugins";
-    public static final String JEMO_CICD = JEMO_ADMIN + "/cicd";
-    public static final String JEMO_ADMIN_AUTH = JEMO_ADMIN + "/auth";
+    static final String JEMO_ADMIN = "/jemo/admin";
+    static final String JEMO_PLUGINS = JEMO_ADMIN + "/plugins";
+    private static final String JEMO_CICD = JEMO_ADMIN + "/cicd";
+    private static final String JEMO_CICD_RESULT = JEMO_ADMIN + "/cicd/result";
+    private static final String JEMO_ADMIN_AUTH = JEMO_ADMIN + "/auth";
     private static final Pattern PLUGIN_VERSION_PATTERN = Pattern.compile(JEMO_PLUGINS + "/(\\d+)/(.*)");
+    private static final Pattern DEPLOYMENT_LOG_TIMESTAMP_PATTERN = Pattern.compile("Finished at: (.*)");
+    private static final Pattern DEPLOYMENT_LOG_NAME_VERSION_PATTERN = Pattern.compile("\\{(.*)-([0-9]+\\.[0-9]+)-jar-with-dependencies.jar\\} to environment: (.*) (.*)");
+
+    private static final String DEPLOYMENT_HISTORY_TABLE = "eclipse_jemo_deployment_history";
 
     public static void processRequest(PluginManagerModule pluginManagerModule, JemoUser authUser, HttpServletRequest request, HttpServletResponse response) throws Throwable {
         switch (request.getMethod()) {
@@ -57,6 +61,8 @@ public class JemoRuntimeAdmin {
                         return;
                     }
                     getUploadedApps(response);
+                } else if (request.getRequestURI().startsWith(JEMO_CICD_RESULT)) {
+                    getDeploymentHistory(response);
                 } else {
                     loadFile(request.getRequestURI().replaceAll(JEMO_ADMIN, ""), response);
                 }
@@ -126,7 +132,7 @@ public class JemoRuntimeAdmin {
         final List<Plugin> plugins = readAppMetadataFromDB().stream()
                 .map(Plugin::new)
                 .sorted()
-                .collect(Collectors.toList());
+                .collect(toList());
         respondWithJson(200, response, plugins);
     }
 
@@ -181,31 +187,43 @@ public class JemoRuntimeAdmin {
         final String authHeader = request.getHeader("Authorization");
         final String[] credentials = new String(Base64.getDecoder().decode(authHeader.split(" ")[1]), "UTF-8").split(":");
 
+        try {
+            deployResource.jemoUrl = request.getRequestURL().substring(0, request.getRequestURL().indexOf("/jemo"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         final Path cicdDirPath = Paths.get("cicd/" + deployResource.pluginId);
         Util.deleteDirectory(cicdDirPath.toFile());
         Files.createDirectories(cicdDirPath);
 
-        final String jemoUrl = request.getRequestURL().substring(0, request.getRequestURL().indexOf("/jemo"));
         final String branch = isNullOrEmpty(deployResource.branch) ? "master" : deployResource.branch;
         final String subDir = isNullOrEmpty(deployResource.subDir) ? "" : "/" + deployResource.subDir;
 
-        final StringBuilder builder = new StringBuilder();
-        runProcess(builder, new String[]{
+        final String[] results = runProcess(null, new String[]{
                 "/bin/sh", "-c", "git clone --single-branch --branch " + branch + " " + deployResource.repoUrl + " " + cicdDirPath.toString() + " ; " +
                 "mvn deploy -f " + cicdDirPath.toString() + subDir + "/pom.xml -Djemo.username=" + credentials[0] +
-                " -Djemo.password=" + credentials[1] + " -Djemo.id=" + deployResource.pluginId + " -Djemo.endpoint=" + jemoUrl
+                " -Djemo.password=" + credentials[1] + " -Djemo.id=" + deployResource.pluginId + " -Djemo.endpoint=" + deployResource.jemoUrl
         });
 
-        if (builder.indexOf("to environment: " + jemoUrl + " successful") == -1) {
-            deployResource.msg = "The deployment failed";
-            deployResource.logs = builder.toString();
-            respondWithJson(400, response, deployResource);
-        } else {
-            Util.deleteDirectory(cicdDirPath.toFile());
-            deployResource.msg = "The plugin was deployed successfully";
-            deployResource.logs = builder.toString();
-            respondWithJson(201, response, deployResource);
+        deployResource.logs = results[0];
+        SystemDB.createTable(DEPLOYMENT_HISTORY_TABLE);
+        SystemDB.save(DEPLOYMENT_HISTORY_TABLE, deployResource.resolve());
+        Util.deleteDirectory(cicdDirPath.toFile());
+
+        respondWithJson(201, response, deployResource);
+    }
+
+    private static void getDeploymentHistory(HttpServletResponse response) throws IOException {
+        List<DeployResource> deployResources;
+        try {
+            deployResources = SystemDB.list(DEPLOYMENT_HISTORY_TABLE, DeployResource.class).stream()
+                    .sorted(Comparator.comparing((DeployResource r) -> r.timestamp).reversed())
+                    .collect(toList());
+        } catch (Exception e) {
+            deployResources = new ArrayList<>();
         }
+        respondWithJson(200, response, deployResources);
     }
 
     private static boolean hasMandatoryField(HttpServletResponse response, DeployResource deployResource, String field, String value) throws IOException {
@@ -276,8 +294,61 @@ public class JemoRuntimeAdmin {
         }
     }
 
-    public static class DeployResource {
+    public static class DeployResource implements SystemDBObject {
+
+        @JsonIgnore
+        private String jemoUrl;
+
         @JsonProperty
-        private String service, repoUrl, branch, subDir, token, pluginId, msg, logs;
+        private boolean success;
+
+        @JsonProperty
+        private String service, repoUrl, branch, subDir, token, pluginId, version, name, timestamp, msg;
+
+        @JsonProperty
+        private String logs;
+
+        public DeployResource resolve() {
+            Matcher matcher = DEPLOYMENT_LOG_NAME_VERSION_PATTERN.matcher(logs);
+            matcher.find();
+            name = matcher.group(1);
+            version = matcher.group(2);
+            final String state = matcher.group(4);
+            success = state.startsWith("success");
+
+            matcher = DEPLOYMENT_LOG_TIMESTAMP_PATTERN.matcher(logs);
+            matcher.find();
+            timestamp = matcher.group(1);
+
+            return this;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            DeployResource that = (DeployResource) o;
+            return Objects.equals(service, that.service) &&
+                    Objects.equals(repoUrl, that.repoUrl) &&
+                    Objects.equals(branch, that.branch) &&
+                    Objects.equals(subDir, that.subDir) &&
+                    Objects.equals(pluginId, that.pluginId) &&
+                    Objects.equals(version, that.version) &&
+                    Objects.equals(name, that.name) &&
+                    Objects.equals(timestamp, that.timestamp);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(service, repoUrl, branch, subDir, pluginId, version, name, timestamp);
+        }
+
+        @Override
+        @JsonIgnore
+        public String getId() {
+            return pluginId + "_" + version + "_" + timestamp;
+        }
+
     }
+
 }
