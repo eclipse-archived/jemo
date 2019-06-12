@@ -50,8 +50,8 @@ public class JemoRuntimeAdmin {
     private static final Pattern PLUGIN_VERSION_PATTERN = Pattern.compile(JEMO_PLUGINS + "/(\\d+)/(.*)");
     private static final Pattern DEPLOYMENT_LOG_TIMESTAMP_PATTERN = Pattern.compile("Finished at: (.*)");
     private static final Pattern DEPLOYMENT_LOG_NAME_VERSION_PATTERN = Pattern.compile("\\{(.*)-([0-9]+\\.[0-9]+)-jar-with-dependencies.jar\\} to environment: (.*) (.*)");
-
-    private static final String DEPLOYMENT_HISTORY_TABLE = "eclipse_jemo_deployment_history";
+    private static final Pattern DEPLOYMENT_LOG_VERSION_PATTERN = Pattern.compile("Building (.*) ([0-9]+\\.[0-9]+)");
+    static final String DEPLOYMENT_HISTORY_TABLE = "eclipse_jemo_deployment_history";
 
     public static void processRequest(PluginManagerModule pluginManagerModule, JemoUser authUser, HttpServletRequest request, HttpServletResponse response) throws Throwable {
         switch (request.getMethod()) {
@@ -200,9 +200,10 @@ public class JemoRuntimeAdmin {
         final String branch = isNullOrEmpty(deployResource.branch) ? "master" : deployResource.branch;
         final String subDir = isNullOrEmpty(deployResource.subDir) ? "" : "/" + deployResource.subDir;
 
+        final String skipTests = deployResource.skipTests ? "-DskipTests" : "";
         final String[] results = runProcess(null, new String[]{
                 "/bin/sh", "-c", "git clone --single-branch --branch " + branch + " " + deployResource.repoUrl + " " + cicdDirPath.toString() + " ; " +
-                "mvn deploy -f " + cicdDirPath.toString() + subDir + "/pom.xml -Djemo.username=" + credentials[0] +
+                "mvn deploy -f " + cicdDirPath.toString() + subDir + "/pom.xml " + skipTests + " -Djemo.username=" + credentials[0] +
                 " -Djemo.password=" + credentials[1] + " -Djemo.id=" + deployResource.pluginId + " -Djemo.endpoint=" + deployResource.jemoUrl
         });
 
@@ -308,13 +309,25 @@ public class JemoRuntimeAdmin {
         @JsonProperty
         private String logs;
 
+        @JsonProperty
+        private boolean skipTests;
+
+        public String getTimestamp() {
+            return timestamp;
+        }
+
         public DeployResource resolve() {
             Matcher matcher = DEPLOYMENT_LOG_NAME_VERSION_PATTERN.matcher(logs);
-            matcher.find();
-            name = matcher.group(1);
-            version = matcher.group(2);
-            final String state = matcher.group(4);
-            success = state.startsWith("success");
+            if (matcher.find()) {
+                name = matcher.group(1);
+                version = matcher.group(2);
+                final String state = matcher.group(4);
+                success = state.startsWith("success");
+            } else {
+                matcher = DEPLOYMENT_LOG_VERSION_PATTERN.matcher(logs);
+                matcher.find();
+                version = matcher.group(2);
+            }
 
             matcher = DEPLOYMENT_LOG_TIMESTAMP_PATTERN.matcher(logs);
             matcher.find();
@@ -349,6 +362,24 @@ public class JemoRuntimeAdmin {
             return pluginId + "_" + version + "_" + timestamp;
         }
 
+        @Override
+        public String toString() {
+            return "DeployResource{" +
+                    "jemoUrl='" + jemoUrl + '\'' +
+                    ", success=" + success +
+                    ", service='" + service + '\'' +
+                    ", repoUrl='" + repoUrl + '\'' +
+                    ", branch='" + branch + '\'' +
+                    ", subDir='" + subDir + '\'' +
+                    ", token='" + token + '\'' +
+                    ", pluginId='" + pluginId + '\'' +
+                    ", version='" + version + '\'' +
+                    ", name='" + name + '\'' +
+                    ", timestamp='" + timestamp + '\'' +
+                    ", msg='" + msg + '\'' +
+                    ", logs='" + logs + '\'' +
+                    '}';
+        }
     }
 
 }

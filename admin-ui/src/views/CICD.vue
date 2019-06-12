@@ -39,8 +39,16 @@
 
                                 <v-text-field v-if="branches.length>0" v-model="subDirectory"
                                               label="sub-directory"></v-text-field>
+
                                 <v-text-field v-if="selectedRepository" v-model="pluginId"
                                               label="pluginId***"></v-text-field>
+
+                                <v-switch v-if="branches.length>0" v-model="skipTests"
+                                          color="indigo"
+                                          label="Skip tests"
+                                          hide-details>
+                                </v-switch>
+
                                 <v-card-text>(*) Mandatory field</v-card-text>
                                 <v-card-text>(**) If the github account has 2FA enabled, you need to provide the
                                     <a href="https://github.com/settings/tokens/new" target="_blank">personal auth token</a>,
@@ -100,6 +108,7 @@
                 branches: [],
                 selectedBranch: null,
                 subDirectory: '',
+                skipTests: false,
                 pluginId: null,
                 loading: false,
                 response: null,
@@ -150,6 +159,7 @@
                 this.prevUsername = this.username;
 
                 this.clear();
+
                 const gitHeaders = this.password ? {
                     'Authorization': 'Basic ' + window.btoa(this.username + ':' + this.password)
                 } : {};
@@ -163,7 +173,10 @@
                     });
             },
             getBranches() {
-                this.$http.get('https://api.github.com/repos/' + this.username + '/' + this.selectedRepository + '/branches')
+                const gitHeaders = this.password ? {
+                    'Authorization': 'Basic ' + window.btoa(this.username + ':' + this.password)
+                } : {};
+                this.$http.get('https://api.github.com/repos/' + this.username + '/' + this.selectedRepository + '/branches', {headers: gitHeaders})
                     .then(response => {
                         this.branches = response.data.map(repo => repo.name);
                         console.log(response);
@@ -180,7 +193,8 @@
                     repoUrl: 'https://github.com/' + this.username + '/' + this.selectedRepository + '.git',
                     branch: this.selectedBranch ? this.selectedBranch : 'master',
                     subDir: this.subDirectory,
-                    pluginId: this.pluginId
+                    pluginId: this.pluginId,
+                    skipTests: this.skipTests
                 };
                 this.$http.post('cicd', payload, {headers: this.headers})
                     .then(response => {

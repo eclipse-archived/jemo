@@ -28,7 +28,7 @@
                            color="primary" flat
                     >{{plugin.metaData.enabled ? 'Deactivate' : 'Activate'}}
                     </v-btn>
-                    <v-btn @click="deletePluginVersion(plugin, i)"
+                    <v-btn @click="alertForDeletion(plugin, i)"
                            :loading="loading[plugin.pluginInfo.id + '-' + plugin.pluginInfo.version + '-del']"
                            color="red" flat>Delete
                     </v-btn>
@@ -45,8 +45,10 @@
                         class="elevation-1"
                         hide-actions>
                     <template slot="items" slot-scope="props">
-                        <td>{{ props.item }}</td>
-                        <td>{{ plugin.metaData.endpoints[props.item] }}</td>
+                        <td><strong>class: </strong>{{ props.item }} - <strong>endpoint: </strong>{{
+                            plugin.metaData.endpoints[props.item] }}
+                        </td>
+                        <td><strong>avg response time: </strong>{{ avg(plugin.metaData.stats[props.item]) }}</td>
                     </template>
                 </v-data-table>
 
@@ -61,7 +63,8 @@
                         class="elevation-1"
                         hide-actions>
                     <template slot="items" slot-scope="props">
-                        <td>{{ props.item }}</td>
+                        <td><strong>class: </strong>{{ props.item }}</td>
+                        <td><strong>avg response time: </strong>{{ avg(plugin.metaData.stats[props.item]) }}</td>
                     </template>
                 </v-data-table>
 
@@ -76,7 +79,8 @@
                         class="elevation-1"
                         hide-actions>
                     <template slot="items" slot-scope="props">
-                        <td>{{ props.item }}</td>
+                        <td><strong>class: </strong>{{ props.item }}</td>
+                        <td><strong>avg response time: </strong>{{ avg(plugin.metaData.stats[props.item]) }}</td>
                     </template>
                 </v-data-table>
 
@@ -91,7 +95,7 @@
                         class="elevation-1"
                         hide-actions>
                     <template slot="items" slot-scope="props">
-                        <td>{{ props.item }}</td>
+                        <td><strong>class: </strong>{{ props.item }}</td>
                     </template>
                 </v-data-table>
 
@@ -145,6 +149,23 @@
             </v-expansion-panel>
         </div>
 
+        <v-dialog v-model="deleteConfirmationDialog" persistent max-width="400px" class="mx-1">
+            <v-card>
+                <v-card-text>
+                    Are you sure you want to delete this plugin?
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="primary" flat
+                           @click="deletePluginVersion">OK
+                    </v-btn>
+                    <v-btn color="error" flat
+                           @click="deleteConfirmationDialog = false">Cancel
+                    </v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+
     </div>
 </template>
 
@@ -157,7 +178,9 @@
                 plugins: null,
                 headers: this.$route.params.headers,
                 loading: {},
-                pluginsPendingDeployment: []
+                pluginsPendingDeployment: [],
+                deleteConfirmationDialog: false,
+                pluginToDelete: null
             }
         },
         watch: {
@@ -220,8 +243,22 @@
                         console.log(response);
                     });
             },
-            deletePluginVersion(plugin, index) {
+            alertForDeletion(plugin, index) {
                 this.expand[index] = !this.expand[index]
+                this.pluginToDelete = {
+                    plugin: plugin,
+                    index: index
+                }
+                this.deleteConfirmationDialog = true;
+            },
+            deletePluginVersion() {
+                this.expand[index] = !this.expand[index]
+
+                this.deleteConfirmationDialog = false;
+                const plugin = this.pluginToDelete.plugin;
+                const index = this.pluginToDelete.index;
+                this.pluginToDelete = null;
+
                 const label = plugin.pluginInfo.id + '-' + plugin.pluginInfo.version + '-del';
                 this.loading[label] = true;
                 this.$http.delete('plugins/' + plugin.pluginInfo.id + '/' + plugin.pluginInfo.version, {headers: this.headers})
@@ -235,6 +272,9 @@
                         this.loading[label] = false;
                         alert(response.data);
                     });
+            },
+            avg(accumulator) {
+                return accumulator ? (accumulator.totalTime / accumulator.samples).toFixed(2) : 0;
             }
         }
     }
