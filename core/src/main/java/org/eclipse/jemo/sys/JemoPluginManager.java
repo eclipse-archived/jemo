@@ -30,6 +30,11 @@ import org.eclipse.jemo.sys.internal.ManagedConsumer;
 import org.eclipse.jemo.sys.internal.ManagedFunctionWithException;
 import org.eclipse.jemo.sys.internal.SystemDB;
 import org.eclipse.jemo.sys.internal.Util;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.spi.ConfigBuilder;
+import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
+import org.eclipse.microprofile.config.spi.ConfigSource;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.ByteArrayInputStream;
@@ -98,8 +103,11 @@ import static org.eclipse.jemo.sys.JemoRuntimeSetup.JEMO_SETUP;
  * <p>
  * Jemo will store libraries on AWS S3 and should allow them to be downloaded through maven directly through
  * a cloudreach connect endpoint.
+ * 
+ * Update: as we move to support some Microprofile the plugin manager will manager global micro-profile services like configuration
+ * and inject them into our plugins so they can access the supporting Jemo services.
  *
- * @author christopher stura
+ * @author Christopher Stura "cstura@gmail.com"
  */
 public class JemoPluginManager {
 
@@ -199,6 +207,58 @@ public class JemoPluginManager {
     public static String VHOST_KEY = "VIRTUALHOSTS";
 
     public static final String EVENT_MODULE_UPLOAD = "MODULE_UPLOAD";
+    
+    private static class JemoConfigProviderResolver extends ConfigProviderResolver {
+
+		@Override
+		public Config getConfig() {
+			return getConfig(Thread.currentThread().getContextClassLoader());
+		}
+
+		@Override
+		public Config getConfig(ClassLoader loader) {
+			//because we expect modules to be loaded using an JemoClassLoader somewhere
+			//as we backtrack through the class loaders we should be able to find an X2ClassLoader instance.
+			//this means that when we use this method we will keep looking for a parent class loader
+			//until we don't find one which has a configuration object registered against it.
+			Config cfg = null;
+			ClassLoader currentClassLoader = loader;
+			do {
+				if(currentClassLoader instanceof JemoClassLoader) {
+					cfg = JemoClassLoader.class.cast(currentClassLoader).getApplicationConfiguration();
+				}
+				currentClassLoader = loader.getParent();
+			}while(loader == null || cfg != null);
+			
+			return cfg;
+		}
+
+		@Override
+		public ConfigBuilder getBuilder() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public void registerConfig(Config config, ClassLoader classLoader) {
+			//here micro-profile would state that we should only allow the configuration to be set against the 
+			//application identified by the class loader if an existing configuration is not already present.
+			//we can enforce this in Jemo by allowing this method if there are no current configuration parameters
+			//on the application. if a configuration is specified then we will return an IllegalStateException.
+			
+		}
+
+		@Override
+		public void releaseConfig(Config config) {
+			// TODO Auto-generated method stub
+			
+		}
+    }
+    
+    static {
+    	//we should register the Jemo implementation of the Micro-profile ConfigProviderResolver
+    	ConfigProviderResolver.setInstance(new JemoConfigProviderResolver());
+    }
 
     private final Map<String, Set<JemoModule>> LIVE_MODULE_MAP = new ConcurrentHashMap<>();
     private final Map<String, String> moduleEndpointMap = new ConcurrentHashMap<>();
@@ -2055,6 +2115,33 @@ public class JemoPluginManager {
                 //the plugin id is contained in the jar file name and is the first part of its name.
                 int pluginId = JemoPluginManager.PLUGIN_ID(jarFileName);
                 final Map<String, String> moduleConfig = getModuleConfiguration(pluginId);
+                jemoClassLoaderHolder.value.setApplicationConfiguration(new Config() {
+					
+					@Override
+					public <T> T getValue(String propertyName, Class<T> propertyType) {
+						// TODO Auto-generated method stub
+						return null;
+					}
+					
+					@Override
+					public Iterable<String> getPropertyNames() {
+						// TODO Auto-generated method stub
+						return null;
+					}
+					
+					@Override
+					public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
+						// TODO Auto-generated method stub
+						return null;
+					}
+					
+					@Override
+					public Iterable<ConfigSource> getConfigSources() {
+						// TODO Auto-generated method stub
+						return null;
+					}
+				});
+                
                 double pluginVersion = JemoPluginManager.PLUGIN_VERSION(jarFileName);
                 //at this point we will want to update the application metadata. (if we don't already know about it of course)
                 JemoApplicationMetaData appMetadata = KNOWN_APPLICATIONS.stream().filter(jemoApp -> jemoApp.getId().equals(jarFileName)).findAny().orElse(new JemoApplicationMetaData());

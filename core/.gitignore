@@ -9,4 +9,6 @@
 /cicd
 terraform.tfstate
 terraform.tfstate.backup
+jemo-cloud-log-*
+UUID_*
 

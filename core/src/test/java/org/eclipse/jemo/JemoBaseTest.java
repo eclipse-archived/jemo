@@ -98,7 +98,11 @@ public abstract class JemoBaseTest {
 	
 	public void startJemo() {
 		jemoServer = new TestJemoServer("JEMOUUID_"+UUID.randomUUID().toString(),"AWS",8080,"20");
-		Util.B(null, x -> jemoServer.start());
+		try {
+			Util.B(null, x -> jemoServer.start());
+		}catch(Throwable ex) {
+			ex.printStackTrace();
+		}
 	}
 	
 	public void stopJemo() {

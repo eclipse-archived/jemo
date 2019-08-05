@@ -22,6 +22,7 @@ import org.eclipse.jemo.internal.model.JemoError;
 import org.eclipse.jemo.internal.model.CloudBlob;
 import org.eclipse.jemo.internal.model.CloudProvider;
 import org.eclipse.jemo.sys.internal.Util;
+import org.eclipse.microprofile.config.Config;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -185,6 +186,7 @@ public class JemoClassLoader extends URLClassLoader {
 	private Map<Integer,AdjacentClassLoader> adjacentClassLoaderMap = new LinkedHashMap<>();
 	private Set<String> loadedClasses = new ConcurrentSkipListSet<>();
 	private volatile Set<String> localClassList = null;
+	private volatile Config appConfig = null;
 	
 	public JemoClassLoader(String uniqueKey, byte[] data) {
 		this(uniqueKey, data, JemoClassLoader.class.getClassLoader());
@@ -520,6 +522,7 @@ public class JemoClassLoader extends URLClassLoader {
 
 	@Override
 	public void close() throws IOException {
+		this.appConfig = null;
 		loadedClasses.clear();
 		adjacentClassLoaderMap.clear();
 		if(localClassList != null) {
@@ -603,5 +606,13 @@ public class JemoClassLoader extends URLClassLoader {
 			
 			return Util.runMethod(jemomodule, Module.class, "getModule");
 		});
+	}
+	
+	public void setApplicationConfiguration(Config appConfig) {
+		this.appConfig = appConfig;
+	}
+	
+	public Config getApplicationConfiguration() {
+		return this.appConfig;
 	}
 }

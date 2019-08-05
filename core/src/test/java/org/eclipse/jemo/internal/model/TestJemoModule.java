@@ -30,7 +30,7 @@ import org.junit.Test;
 
 /**
  *
- * @author Christopher Stura "christopher.stura@cloudreach.com"
+ * @author Christopher Stura "cstura@gmail.com"
  */
 public class TestJemoModule extends JemoBaseTest {
 	

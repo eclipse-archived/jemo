@@ -1,6 +1,6 @@
 /*
  ********************************************************************************
- * Copyright (c) 9th November 2018 Cloudreach Limited Europe
+ * Copyright (c) 9th November 2018
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -46,7 +46,7 @@ import java.util.logging.*;
 import java.util.logging.Formatter;
 
 /**
- * @author Christopher Stura "christopher.stura@cloudreach.com"
+ * @author Christopher Stura "cstura@gmail.com"
  */
 public abstract class AbstractJemo {
 

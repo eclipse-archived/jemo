@@ -55,7 +55,7 @@ public class TestJemoLogFormatter {
 			LogRecord testLogRecord = new LogRecord(Level.INFO, "message");
 			testLogRecord.setThrown(new RuntimeException("test error"));
 			testLogRecord.setLoggerName("TEST");
-			assertTrue(logFormatter.format(testLogRecord).indexOf("[INFO] - {TEST} messageCCError{stackTrace=java.lang.RuntimeException: test error") != -1);
+			assertTrue(logFormatter.format(testLogRecord).indexOf("[INFO] - {TEST} messageJemoError{stackTrace=java.lang.RuntimeException: test error") != -1);
 		}finally {
 			System.setProperty("java.io.tmpdir", tempDir);
 			Jemo.SERVER_INSTANCE = origCC;
