@@ -12,3 +12,6 @@ terraform.tfstate.backup
 jemo-cloud-log-*
 UUID_*
 
+/.classpath
+/.factorypath
+/.project
