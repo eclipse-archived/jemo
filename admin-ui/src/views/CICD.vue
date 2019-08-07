@@ -138,7 +138,7 @@
                     .then(response => {
                         console.log(response);
                         const pluginIds = response.data.map(plugin => plugin.pluginInfo.id);
-                        this.pluginId = pluginIds.length > 0 ? Math.max(...pluginIds) + 1 : 1;
+                        this.pluginId = pluginIds.length > 0 ? Math.max(...pluginIds) + 1 : 2;
                     }, response => {
                         console.log(response);
                         alert(response.data ? response.data : 'Wrong username or password.');
