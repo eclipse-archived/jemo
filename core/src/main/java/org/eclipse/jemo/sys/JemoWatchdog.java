@@ -69,7 +69,10 @@ public class JemoWatchdog extends Thread {
 			
 			//we should check for any modules that were last used more than 10 minutes ago and if they were we will just simply unload them.
 			jemoServer.getPluginManager().getApplicationList().stream()
-				.filter(app -> JemoPluginManager.PLUGIN_ID(app.getId()) != 0)
+				.filter(app -> {
+					final int pluginId = JemoPluginManager.PLUGIN_ID(app.getId());
+					return pluginId != 0 && pluginId != 1;
+				})
 				.filter(app -> System.currentTimeMillis() - app.getLastUsedOn() > TimeUnit.MINUTES.toMillis(10))
 				.forEach(app -> Util.B(null, x -> jemoServer.getPluginManager().unloadPlugin(app.getId())));
 

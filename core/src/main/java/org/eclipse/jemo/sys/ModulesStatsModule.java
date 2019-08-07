@@ -26,7 +26,10 @@ public class ModulesStatsModule implements BatchModule {
 
     @Override
     public void processBatch(String location, boolean isCloudLocation) throws Throwable {
-        knownApplications.values().forEach(appMetaData -> SystemDB.save(MODULE_METADATA_TABLE, appMetaData));
+        final JemoApplicationMetaData[] jemoApplicationMetaDataArray = knownApplications.values().toArray(new JemoApplicationMetaData[0]);
+        if (jemoApplicationMetaDataArray.length > 0) {
+            SystemDB.save(MODULE_METADATA_TABLE, jemoApplicationMetaDataArray);
+        }
     }
 
     @Override

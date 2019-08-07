@@ -101,6 +101,8 @@ import static org.eclipse.jemo.sys.JemoRuntimeSetup.JEMO_SETUP;
 public class JemoPluginManager {
 
     private static final String QUEUE_NAME_PREFIX = "JEMO-";
+    private static final String DEFAULT_PLUGIN_JAR_FILE_NAME = "0_DefaultPlugin-1.0.jar";
+    private static final String STATS_PLUGIN_JAR_FILE_NAME = "1_StatsPlugin-1.0.jar";
 
     public static class MonitoringInterval {
         private String key;
@@ -261,9 +263,8 @@ public class JemoPluginManager {
                             .collect(Collectors.toMap(e -> e, e -> app.getId())));
                 });
 
-        addDefaultModuleToAppList("PluginManager", PLUGIN_MANAGER_MODULE);
-        addDefaultModuleToAppList("DeploymentHistory", DEPLOYMENT_HISTORY_MODULE);
-        addDefaultModuleToAppList("ModuleStats", MODULES_STATS_MODULE);
+        addDefaultModuleToAppList("PluginManager", asList(PLUGIN_MANAGER_MODULE), DEFAULT_PLUGIN_JAR_FILE_NAME);
+        addDefaultModuleToAppList("StatsPlugin", asList(DEPLOYMENT_HISTORY_MODULE, MODULES_STATS_MODULE), STATS_PLUGIN_JAR_FILE_NAME);
 
         if (!jemoServer.isInInstallationMode()) {
             storeModuleList();
@@ -272,48 +273,56 @@ public class JemoPluginManager {
     }
 
     private void addDefaultModulesToModuleMap() {
-        final String pluginJarName = "0_DefaultPlugin-1.0.jar";
-        final JemoModule pluginManager = createAndStartDefaultModule(PLUGIN_MANAGER_MODULE, pluginJarName);
-        final JemoModule deploymentHistory = createAndStartDefaultModule(DEPLOYMENT_HISTORY_MODULE, pluginJarName);
-        final JemoModule moduleStats = createAndStartDefaultModule(MODULES_STATS_MODULE, pluginJarName);
-        LIVE_MODULE_MAP.put(pluginJarName, new HashSet<JemoModule>() {{
+        final JemoModule pluginManager = createAndStartDefaultModule(PLUGIN_MANAGER_MODULE, DEFAULT_PLUGIN_JAR_FILE_NAME);
+        LIVE_MODULE_MAP.put(DEFAULT_PLUGIN_JAR_FILE_NAME, new HashSet<JemoModule>() {{
             add(pluginManager);
+        }});
+        moduleEndpointMap.put(PLUGIN_MANAGER_MODULE.getBasePath(), DEFAULT_PLUGIN_JAR_FILE_NAME);
+
+        final JemoModule deploymentHistory = createAndStartDefaultModule(DEPLOYMENT_HISTORY_MODULE, STATS_PLUGIN_JAR_FILE_NAME);
+        final JemoModule moduleStats = createAndStartDefaultModule(MODULES_STATS_MODULE, STATS_PLUGIN_JAR_FILE_NAME);
+        LIVE_MODULE_MAP.put(STATS_PLUGIN_JAR_FILE_NAME, new HashSet<JemoModule>() {{
             add(deploymentHistory);
             add(moduleStats);
         }});
-        moduleEndpointMap.put(PLUGIN_MANAGER_MODULE.getBasePath(), pluginJarName);
     }
 
     private JemoModule createAndStartDefaultModule(Module module, String pluginJarName) {
-        final Logger moduleLogger = getModuleLogger(0, 1.0, module.getClass());
-        final JemoModule jemoModule = new JemoModule(module, new ModuleMetaData(0, 1.0, module.getClass().getSimpleName(), pluginJarName, moduleLogger));
+        final int pluginId = PLUGIN_ID(pluginJarName);
+        final double pluginVersion = PLUGIN_VERSION(pluginJarName);
+
+        final Logger moduleLogger = getModuleLogger(pluginId, pluginVersion, module.getClass());
+        final JemoModule jemoModule = new JemoModule(module, new ModuleMetaData(pluginId, pluginVersion, module.getClass().getSimpleName(), pluginJarName, moduleLogger));
         module.construct(jemoModule.getMetaData().getLog(), jemoModule.getMetaData().getName(), jemoModule.getMetaData().getId(), jemoModule.getMetaData().getVersion());
         module.start();
         return jemoModule;
     }
 
-    private void addDefaultModuleToAppList(String name, Module module) {
+    private void addDefaultModuleToAppList(String name, List<Module> modules, String pluginJarName) {
         final JemoApplicationMetaData pluginManagerApp = new JemoApplicationMetaData();
-        final String jarName = "0_DefaultPlugin-1.0.jar";
 
-        pluginManagerApp.setId(jarName);
+        pluginManagerApp.setId(pluginJarName);
         pluginManagerApp.setEnabled(true);
-        pluginManagerApp.setVersion(module.getVersion());
+        final double pluginVersion = PLUGIN_VERSION(pluginJarName);
+        pluginManagerApp.setVersion(pluginVersion);
         pluginManagerApp.setName(name);
-        if (JemoModule.implementsWeb(module.getClass())) {
-            pluginManagerApp.getEndpoints().put(module.getClass().getName(),
-                    "/0/v" + module.getVersion() + (module.getBasePath().startsWith("/") ? module.getBasePath() : "/" + module.getBasePath()));
-        }
 
-        if (JemoModule.implementsBatch(module.getClass())) {
-            pluginManagerApp.getBatches().add(module.getClass().getName());
-        }
+        modules.forEach(module -> {
+            if (JemoModule.implementsWeb(module.getClass())) {
+                pluginManagerApp.getEndpoints().put(module.getClass().getName(),
+                        "/" + PLUGIN_ID(pluginJarName) + "/v" + pluginVersion + (module.getBasePath().startsWith("/") ? module.getBasePath() : "/" + module.getBasePath()));
+            }
 
-        if (JemoModule.implementsEvent(module.getClass())) {
-            pluginManagerApp.getEvents().add(module.getClass().getName());
-        }
+            if (JemoModule.implementsBatch(module.getClass())) {
+                pluginManagerApp.getBatches().add(module.getClass().getName());
+            }
 
-        pluginManagerApp.getLimits().put(module.getClass().getName(), JemoApplicationMetaData.JemoModuleLimits.wrap(module.getLimits()));
+            if (JemoModule.implementsEvent(module.getClass())) {
+                pluginManagerApp.getEvents().add(module.getClass().getName());
+            }
+
+            pluginManagerApp.getLimits().put(module.getClass().getName(), JemoApplicationMetaData.JemoModuleLimits.wrap(module.getLimits()));
+        });
 
         APPLICATION_LIST.add(pluginManagerApp);
     }
