@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.eclipse.jemo</groupId>
     <artifactId>eclipse-jemo-maven-plugin</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
     <packaging>maven-plugin</packaging>
 
 
@@ -30,7 +30,7 @@
                 <role>Eclipse Jemo Project Lead</role>
                 <role>Eclipse Jemo Committer</role>
             </roles>
-            <url>https://www.eclipse.org/jemo/</url>
+            <url>https://projects.eclipse.org/user/11957</url>
         </developer>
 
         <developer>
@@ -40,7 +40,7 @@
             <roles>
                 <role>Eclipse Jemo Committer</role>
             </roles>
-            <url>https://www.eclipse.org/jemo/</url>
+            <url>https://projects.eclipse.org/user/12589</url>
         </developer>
     </developers>
 

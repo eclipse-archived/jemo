@@ -2,6 +2,8 @@
 import java.io.File;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -26,6 +28,7 @@ import org.apache.maven.plugins.annotations.Parameter;
  */
 @Mojo(name = "deploy", defaultPhase = LifecyclePhase.PROCESS_SOURCES)
 public class JemoDeploymentMojo extends AbstractMojo {
+    private static final Pattern PATTERN = Pattern.compile("(.*)-([0-9]+\\.[0-9]+)-jar-with-dependencies");
 
     @Parameter(defaultValue = "${project.build.directory}", property = "outputDir", required = true)
     private String outputDir;
@@ -60,8 +63,12 @@ public class JemoDeploymentMojo extends AbstractMojo {
                     }).build()).build();
             HttpPost postRequest = new HttpPost(endpoint + "/jemo");
             postRequest.setHeader("Authorization", "Basic " + java.util.Base64.getEncoder().encodeToString((username + ":" + password).getBytes("UTF-8")));
+
+            Matcher matcher = PATTERN.matcher(outputJar);
+            matcher.find();
+
             postRequest.setEntity(MultipartEntityBuilder.create().addBinaryBody("PLUGIN", new File(outputDir, outputJar + ".jar"), ContentType.create("application/jar"), outputJar + ".jar")
-                    .addTextBody("NAME", outputJar.substring(0, outputJar.indexOf('.')))
+                    .addTextBody("NAME", matcher.group(1))
                     .addTextBody("ID", String.valueOf(id))
                     .addTextBody("VERSION", String.valueOf(version)).build());
             HttpResponse response = httpClient.execute(postRequest);
