@@ -1,7 +1,5 @@
 /*
 ********************************************************************************
-* Copyright (c) 9th November 2018 Cloudreach Limited Europe
-*
 * This program and the accompanying materials are made available under the
 * terms of the Eclipse Public License 2.0 which is available at
 * http://www.eclipse.org/legal/epl-2.0.
@@ -18,9 +16,13 @@ package org.eclipse.jemo.internal.model;
 
 import org.eclipse.jemo.JemoBaseTest;
 import org.eclipse.jemo.api.Module;
+import org.eclipse.jemo.sys.JemoClassLoader;
+import org.eclipse.jemo.sys.internal.Util;
 
+import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
@@ -48,9 +50,13 @@ public class TestJemoModule extends JemoBaseTest {
 	}
 	
 	@Test
-	public void testClose() {
+	public void testClose() throws Throwable {
 		Map<String,ScheduledFuture> testWatchdogList = new HashMap<>();
-		JemoModule mod = new JemoModule(new TestModule(), new ModuleMetaData(60001, 1.0, TestModule.class.getSimpleName(), "TestPlugin", jemoServer.getPluginManager().getModuleLogger(60001, 1.0, TestModule.class))) {
+		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+		Util.createJar(byteOut, TestModule.class);
+		JemoModule mod = new JemoModule(new TestModule(), 
+				new ModuleMetaData(60001, 1.0, TestModule.class.getSimpleName(), "TestPlugin", jemoServer.getPluginManager().getModuleLogger(60001, 1.0, TestModule.class)),
+				new JemoClassLoader(UUID.randomUUID().toString(), byteOut.toByteArray())) {
 			@Override
 			public synchronized void close() {
 				super.close();

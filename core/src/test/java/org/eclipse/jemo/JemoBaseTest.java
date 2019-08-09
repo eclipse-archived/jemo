@@ -21,6 +21,7 @@ import org.eclipse.jemo.api.Module;
 import org.eclipse.jemo.internal.model.*;
 import org.eclipse.jemo.runtime.MemoryRuntime;
 import org.eclipse.jemo.sys.JemoPluginManager;
+import org.eclipse.jemo.sys.internal.JarEntry;
 import org.eclipse.jemo.sys.internal.Util;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -134,8 +135,16 @@ public abstract class JemoBaseTest {
 	}
 	
 	protected void uploadPlugin(int pluginId, double pluginVersion, String pluginName, 
-			
 			Class... moduleClassList) throws Throwable {
+		uploadPlugin(pluginId, pluginVersion, pluginName, Arrays.asList(moduleClassList)
+				.stream()
+				.map(cls -> Util.F(null, x -> new JarEntry(cls)))
+				.toArray(JarEntry[]::new)
+				);
+	}
+	
+	protected void uploadPlugin(int pluginId, double pluginVersion, String pluginName, 
+			JarEntry... moduleClassList) throws Throwable {
 		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 		Util.createJar(byteOut, moduleClassList);
 		final byte[] jarBytes = byteOut.toByteArray();

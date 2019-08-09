@@ -107,4 +107,22 @@ public class UtilTest {
 		assertEquals("value", loadedProperties.get("test.key"));
 	}
 	
+	private static class ByteClassLoader extends ClassLoader {
+		ByteClassLoader(ClassLoader parent) {
+			super(parent);
+		}
+		
+		public Class getClassFromBytes(String className, byte[] classBytes) throws Throwable {
+			return defineClass(className, classBytes, 0, classBytes.length);
+		}
+	}
+	
+	@Test
+	public void testGetBytesFromClass() throws Throwable {
+		byte[] classBytes = Util.getBytesFromClass(Util.class);
+		Class classFromBytes = new ByteClassLoader(getClass().getClassLoader()).getClassFromBytes(Util.class.getName(), classBytes);
+		assertEquals(Util.class.getName(),  classFromBytes.getName());
+		assertEquals(Util.class.getMethods().length, classFromBytes.getMethods().length);
+	}
+	
 }

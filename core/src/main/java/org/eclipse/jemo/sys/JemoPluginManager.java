@@ -316,7 +316,7 @@ public class JemoPluginManager {
         final double pluginVersion = PLUGIN_VERSION(pluginJarName);
 
         final Logger moduleLogger = getModuleLogger(pluginId, pluginVersion, module.getClass());
-        final JemoModule jemoModule = new JemoModule(module, new ModuleMetaData(pluginId, pluginVersion, module.getClass().getSimpleName(), pluginJarName, moduleLogger));
+        final JemoModule jemoModule = new JemoModule(module, new ModuleMetaData(pluginId, pluginVersion, module.getClass().getSimpleName(), pluginJarName, moduleLogger), null);
         module.construct(jemoModule.getMetaData().getLog(), jemoModule.getMetaData().getName(), jemoModule.getMetaData().getId(), jemoModule.getMetaData().getVersion());
         module.start();
         return jemoModule;
@@ -779,6 +779,7 @@ public class JemoPluginManager {
     private Future<Object> buildModuleFuture(final JemoModule m, final ExecutorService exec, ManagedFunctionWithException<JemoModule, Object> func) {
         return exec.submit(() -> {
             try {
+            	Thread.currentThread().setContextClassLoader(m.getClassLoader());
                 MODULE_CONTEXT_MAP.put(Thread.currentThread().getId(), new ModuleExecutionContext(m.getModule(), m.getMetaData(), jemoServer));
                 return func.applyHandleErrors(m);
             } catch (Throwable ex) {
@@ -2057,6 +2058,8 @@ public class JemoPluginManager {
                     originalModule.close(); //shutdown any watchdogs
                 } catch (Throwable ex) {
                     ex.printStackTrace();
+                } finally {
+                	originalModule.setClassLoader(null);
                 }
             });
             if (moduleClassLoader.value != null) {
@@ -2181,9 +2184,9 @@ public class JemoPluginManager {
                 newModuleList.forEach((cls) -> {
                     //each module will have to be instantiated and stored in the plugin cache for this instance.
                     try {
-                        Module mod = Module.class.cast(jemoClassLoaderHolder.value.loadClass(cls).newInstance());
+                        Module mod = Module.class.cast(jemoClassLoaderHolder.value.loadClass(cls).getConstructor().newInstance());
                         ModuleMetaData metaData = new ModuleMetaData(pluginId, pluginVersion, mod.getClass().getSimpleName(), jarFileName, getModuleLogger(pluginId, pluginVersion, mod.getClass()));
-                        JemoModule jemoModule = new JemoModule(mod, metaData);
+                        JemoModule jemoModule = new JemoModule(mod, metaData, jemoClassLoaderHolder.value);
                         //register the module to receive and process messages during the initialisation phase.
                         Set<JemoModule> moduleSet = LIVE_MODULE_MAP.get(jarFileName);
                         if (moduleSet == null) {

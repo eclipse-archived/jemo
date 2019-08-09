@@ -313,9 +313,9 @@ public class Util {
             jarOut.flush();
         }
     }
-
-    private static void addClassToJar(JarOutputStream jarOut, Class cls) throws Throwable {
-        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+    
+    public static byte[] getBytesFromClass(Class cls) throws IOException {
+    	ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
         try (InputStream clsIn = cls.getResourceAsStream("/" + cls.getName().replace('.', '/') + ".class")) {
             byte[] buf = new byte[8192];
             int rb = 0;
@@ -323,8 +323,11 @@ public class Util {
                 byteOut.write(buf, 0, rb);
             }
         }
-        byte[] clsBytes = byteOut.toByteArray();
-        addEntryToJar(jarOut, cls.getName().replace('.', '/') + ".class", clsBytes);
+        return byteOut.toByteArray();
+    }
+
+    private static void addClassToJar(JarOutputStream jarOut, Class cls) throws Throwable {
+        addEntryToJar(jarOut, cls.getName().replace('.', '/') + ".class", getBytesFromClass(cls));
     }
     
     private static void addEntryToJar(JarOutputStream jarOut, String entryName, byte[] entryBytes) throws IOException {

@@ -19,7 +19,17 @@ import static org.eclipse.jemo.sys.JemoRuntimeAdmin.DEPLOYMENT_HISTORY_TABLE;
  */
 public class DeploymentHistoryModule implements BatchModule {
 
+	
+	
     @Override
+	public void start() {
+		//make sure the deployment history table exists
+    	if(!SystemDB.hasTable(DEPLOYMENT_HISTORY_TABLE)) {
+    		SystemDB.createTable(DEPLOYMENT_HISTORY_TABLE);
+    	}
+	}
+
+	@Override
     public void processBatch(String location, boolean isCloudLocation) throws Throwable {
         // Delete from the deployment history all deployment records that are 6 or more months old.
         final DeployResource[] recordsToDelete = SystemDB.list(DEPLOYMENT_HISTORY_TABLE, DeployResource.class).stream()
