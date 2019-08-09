@@ -18,9 +18,15 @@ import static com.cloudreach.x2.ui.util.Util.F;
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
 public class DatasourceTest {
-	private static final Datasource ds = new Datasource("org.postgresql.Driver", "jdbc:postgresql://cc-prod-01.c6fgrtsxrgei.eu-west-1.rds.amazonaws.com:5432/connect-legacy-config?ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory", 
-			"sTOwusaSpu9U7pi2O4p6", "yeb#oFAMocH$frUf*yAyac7uN");
-	
+	private static final Datasource ds;
+
+	static {
+		final String jdbcUrl = "";
+		final String username = "";
+		final String password = "";
+		ds = new Datasource("org.postgresql.Driver", jdbcUrl, username, password);
+	}
+
 	@Test
 	public void testDatasourceQueryStream() throws Throwable {
 		ds.run(dbConn -> {
