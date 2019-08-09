@@ -1,3 +1,7 @@
+# Author: Yannis Theocharis (ytheohar@gmail.com)
+
+# Creating the Jemo image
+
 FROM openjdk:8-jdk
 WORKDIR /
 ADD target/jemo-*.jar jemo.jar
