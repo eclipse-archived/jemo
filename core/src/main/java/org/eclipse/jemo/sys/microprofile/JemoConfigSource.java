@@ -17,6 +17,36 @@
 
 package org.eclipse.jemo.sys.microprofile;
 
-public class JemoConfigSource {
+import java.util.HashMap;
+import java.util.Map;
 
+import org.eclipse.microprofile.config.spi.ConfigSource;
+
+public class JemoConfigSource implements ConfigSource {
+
+	private final Map<String,String> appConfig = new HashMap<>();
+	
+	public JemoConfigSource(Map<String,String> appConfig) {
+		this.appConfig.putAll(appConfig);
+	}
+	
+	@Override
+	public Map<String, String> getProperties() {
+		return this.appConfig;
+	}
+
+	@Override
+	public String getValue(String propertyName) {
+		return getProperties().get(propertyName);
+	}
+
+	@Override
+	public String getName() {
+		return getClass().getSimpleName();
+	}
+
+	@Override
+	public int getOrdinal() {
+		return ConfigSource.DEFAULT_ORDINAL;
+	}
 }

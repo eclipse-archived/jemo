@@ -237,6 +237,14 @@ public class Util {
             throw new RuntimeException(ex);
         }
     }
+    
+    public static <T, P> T I(P param, ManagedFunctionWithException<P, T> consumer) {
+    	try {
+    		return consumer.apply(param);
+    	} catch (Throwable ex) {}
+    	
+    	return null;
+    }
 
     public static final String getTimeString(long elapsedTime) {
         long hours = TimeUnit.HOURS.convert(elapsedTime, TimeUnit.MILLISECONDS);
@@ -296,6 +304,15 @@ public class Util {
             jarOut.flush();
         }
     }
+    
+    public static void createJar(OutputStream out, org.eclipse.jemo.sys.internal.JarEntry... entries) throws Throwable {
+    	try (JarOutputStream jarOut = new JarOutputStream(out)) {
+            for (org.eclipse.jemo.sys.internal.JarEntry entry : entries) {
+                addEntryToJar(jarOut, entry.getEntryName(), toByteArray(entry.getEntryData()));
+            }
+            jarOut.flush();
+        }
+    }
 
     private static void addClassToJar(JarOutputStream jarOut, Class cls) throws Throwable {
         ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
@@ -307,11 +324,15 @@ public class Util {
             }
         }
         byte[] clsBytes = byteOut.toByteArray();
-        JarEntry entry = new JarEntry(cls.getName().replace('.', '/') + ".class");
-        entry.setSize(clsBytes.length);
+        addEntryToJar(jarOut, cls.getName().replace('.', '/') + ".class", clsBytes);
+    }
+    
+    private static void addEntryToJar(JarOutputStream jarOut, String entryName, byte[] entryBytes) throws IOException {
+    	JarEntry entry = new JarEntry(entryName);
+        entry.setSize(entryBytes.length);
         entry.setTime(System.currentTimeMillis());
         jarOut.putNextEntry(entry);
-        jarOut.write(clsBytes);
+        jarOut.write(entryBytes);
         jarOut.closeEntry();
     }
 

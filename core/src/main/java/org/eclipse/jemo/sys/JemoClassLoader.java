@@ -16,12 +16,14 @@
 ********************************************************************************/
 package org.eclipse.jemo.sys;
 
+import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.Jemo;
 import org.eclipse.jemo.api.Module;
 import org.eclipse.jemo.internal.model.JemoError;
 import org.eclipse.jemo.internal.model.CloudBlob;
 import org.eclipse.jemo.internal.model.CloudProvider;
 import org.eclipse.jemo.sys.internal.Util;
+import org.eclipse.jemo.sys.microprofile.JemoConfig;
 import org.eclipse.microprofile.config.Config;
 
 import java.io.ByteArrayInputStream;
@@ -186,7 +188,9 @@ public class JemoClassLoader extends URLClassLoader {
 	private Map<Integer,AdjacentClassLoader> adjacentClassLoaderMap = new LinkedHashMap<>();
 	private Set<String> loadedClasses = new ConcurrentSkipListSet<>();
 	private volatile Set<String> localClassList = null;
-	private volatile Config appConfig = null;
+	private volatile JemoConfig appConfig = null;
+	private volatile int applicationId = 0;
+	private volatile AbstractJemo jemoServer = null;
 	
 	public JemoClassLoader(String uniqueKey, byte[] data) {
 		this(uniqueKey, data, JemoClassLoader.class.getClassLoader());
@@ -523,6 +527,7 @@ public class JemoClassLoader extends URLClassLoader {
 	@Override
 	public void close() throws IOException {
 		this.appConfig = null;
+		this.jemoServer = null;
 		loadedClasses.clear();
 		adjacentClassLoaderMap.clear();
 		if(localClassList != null) {
@@ -608,11 +613,27 @@ public class JemoClassLoader extends URLClassLoader {
 		});
 	}
 	
-	public void setApplicationConfiguration(Config appConfig) {
+	public void setApplicationConfiguration(JemoConfig appConfig) {
 		this.appConfig = appConfig;
 	}
 	
-	public Config getApplicationConfiguration() {
+	public JemoConfig getApplicationConfiguration() {
 		return this.appConfig;
+	}
+
+	public int getApplicationId() {
+		return applicationId;
+	}
+
+	public void setApplicationId(int applicationId) {
+		this.applicationId = applicationId;
+	}
+
+	public AbstractJemo getJemoServer() {
+		return jemoServer;
+	}
+
+	public void setJemoServer(AbstractJemo jemoServer) {
+		this.jemoServer = jemoServer;
 	}
 }

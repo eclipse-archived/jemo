@@ -133,7 +133,9 @@ public abstract class JemoBaseTest {
 		Util.B(null, x -> Thread.sleep(TimeUnit.SECONDS.toMillis(2)));
 	}
 	
-	protected void uploadPlugin(int pluginId, double pluginVersion, String pluginName, Class... moduleClassList) throws Throwable {
+	protected void uploadPlugin(int pluginId, double pluginVersion, String pluginName, 
+			
+			Class... moduleClassList) throws Throwable {
 		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 		Util.createJar(byteOut, moduleClassList);
 		final byte[] jarBytes = byteOut.toByteArray();

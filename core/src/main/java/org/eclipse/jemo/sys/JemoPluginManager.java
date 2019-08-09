@@ -30,12 +30,17 @@ import org.eclipse.jemo.sys.internal.ManagedConsumer;
 import org.eclipse.jemo.sys.internal.ManagedFunctionWithException;
 import org.eclipse.jemo.sys.internal.SystemDB;
 import org.eclipse.jemo.sys.internal.Util;
+import org.eclipse.jemo.sys.microprofile.JemoConfig;
+import org.eclipse.jemo.sys.microprofile.JemoConfigProviderResolver;
+import org.eclipse.jemo.sys.microprofile.JemoConfigSource;
+import org.eclipse.jemo.sys.microprofile.MicroProfileConfigSource;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.spi.ConfigBuilder;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -207,53 +212,6 @@ public class JemoPluginManager {
     public static String VHOST_KEY = "VIRTUALHOSTS";
 
     public static final String EVENT_MODULE_UPLOAD = "MODULE_UPLOAD";
-    
-    private static class JemoConfigProviderResolver extends ConfigProviderResolver {
-
-		@Override
-		public Config getConfig() {
-			return getConfig(Thread.currentThread().getContextClassLoader());
-		}
-
-		@Override
-		public Config getConfig(ClassLoader loader) {
-			//because we expect modules to be loaded using an JemoClassLoader somewhere
-			//as we backtrack through the class loaders we should be able to find an X2ClassLoader instance.
-			//this means that when we use this method we will keep looking for a parent class loader
-			//until we don't find one which has a configuration object registered against it.
-			Config cfg = null;
-			ClassLoader currentClassLoader = loader;
-			do {
-				if(currentClassLoader instanceof JemoClassLoader) {
-					cfg = JemoClassLoader.class.cast(currentClassLoader).getApplicationConfiguration();
-				}
-				currentClassLoader = loader.getParent();
-			}while(loader == null || cfg != null);
-			
-			return cfg;
-		}
-
-		@Override
-		public ConfigBuilder getBuilder() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public void registerConfig(Config config, ClassLoader classLoader) {
-			//here micro-profile would state that we should only allow the configuration to be set against the 
-			//application identified by the class loader if an existing configuration is not already present.
-			//we can enforce this in Jemo by allowing this method if there are no current configuration parameters
-			//on the application. if a configuration is specified then we will return an IllegalStateException.
-			
-		}
-
-		@Override
-		public void releaseConfig(Config config) {
-			// TODO Auto-generated method stub
-			
-		}
-    }
     
     static {
     	//we should register the Jemo implementation of the Micro-profile ConfigProviderResolver
@@ -1216,9 +1174,7 @@ public class JemoPluginManager {
 
                             //now we also want to propagate all of these parameters to other instances so they may become aware of the changes to the settings for the modules associated
                             //to this plugin.
-                            JemoMessage configMsg = new JemoMessage();
-                            configMsg.getAttributes().put("UPDATED_CONFIG", pluginId);
-                            configMsg.broadcast();
+                            jemoServer.getPluginManager().notifyConfigurationChange(pluginId);
                         } else {
                             response.setStatus(400); //bad parameters
                         }
@@ -1673,13 +1629,23 @@ public class JemoPluginManager {
             } else if (message.getAttributes().containsKey("library")) {
                 documentation.unloadModule((String) message.getAttributes().get("library"));
             } else if (message.getAttributes().containsKey("UPDATED_CONFIG")) {
-                //we need to grab the configuration from dynamodb for this plugin.
+                //we need to grab the configuration from our NoSQL store for this application
                 int targetPluginId = (Integer) message.getAttributes().get("UPDATED_CONFIG");
                 final Map<String, String> config = jemoServer.getPluginManager().getModuleConfiguration(targetPluginId);
-                jemoServer.getPluginManager().loadPluginModules(targetPluginId)
-                        .parallelStream().forEach((m) -> {
-                    m.getModule().configure(config);
-                });
+                Set<JemoModule> appModuleList = jemoServer.getPluginManager().loadPluginModules(targetPluginId);
+                if(!appModuleList.isEmpty()) {
+                	//get a reference to the class loader holding all the modules for this application
+	                JemoClassLoader appClassLoader = (JemoClassLoader)appModuleList.iterator().next()
+	                		.getModule().getClass().getClassLoader();
+	                
+	                //apply the configuration to the class loader in-case this application is using the Micro-profile 3.0 configuration
+	                appClassLoader.getApplicationConfiguration().setConfigSource(new JemoConfigSource(config));
+	                
+	                //broadcast the configuration change event to applications implementing the native Jemo interface.
+	                appModuleList.parallelStream().forEach((m) -> {
+	                    m.getModule().configure(config);
+	                });
+                }
             } else if (message.getAttributes().containsKey("METADATA") && message.getSourceModuleClass() != null) {
                 //a metadata request message is a message from another module which would like a list of the jars that we have loaded and what
                 //are the names of the classes in those jars.
@@ -2115,32 +2081,9 @@ public class JemoPluginManager {
                 //the plugin id is contained in the jar file name and is the first part of its name.
                 int pluginId = JemoPluginManager.PLUGIN_ID(jarFileName);
                 final Map<String, String> moduleConfig = getModuleConfiguration(pluginId);
-                jemoClassLoaderHolder.value.setApplicationConfiguration(new Config() {
-					
-					@Override
-					public <T> T getValue(String propertyName, Class<T> propertyType) {
-						// TODO Auto-generated method stub
-						return null;
-					}
-					
-					@Override
-					public Iterable<String> getPropertyNames() {
-						// TODO Auto-generated method stub
-						return null;
-					}
-					
-					@Override
-					public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-						// TODO Auto-generated method stub
-						return null;
-					}
-					
-					@Override
-					public Iterable<ConfigSource> getConfigSources() {
-						// TODO Auto-generated method stub
-						return null;
-					}
-				});
+                jemoClassLoaderHolder.value.setApplicationConfiguration(new JemoConfig(moduleConfig,new MicroProfileConfigSource(jemoClassLoaderHolder.value)));
+                jemoClassLoaderHolder.value.setApplicationId(pluginId);
+                jemoClassLoaderHolder.value.setJemoServer(jemoServer);
                 
                 double pluginVersion = JemoPluginManager.PLUGIN_VERSION(jarFileName);
                 //at this point we will want to update the application metadata. (if we don't already know about it of course)
@@ -2408,5 +2351,17 @@ public class JemoPluginManager {
             }
         }, 3, 3, TimeUnit.MINUTES);
         module.addWatchdog(watchdogId, watchdog);
+    }
+    
+    public void notifyConfigurationChange(int applicationId) throws JsonProcessingException {
+    	JemoMessage configMsg = new JemoMessage();
+    	configMsg.setPluginId(0);
+    	configMsg.setModuleClass(PluginManagerModule.class.getName());
+    	configMsg.setPluginVersion(1.0);
+    	configMsg.setSourcePluginId(0);
+    	configMsg.setSourceModuleClass(PluginManagerModule.class.getName());
+    	configMsg.setSourcePluginVersion(1.0);
+        configMsg.getAttributes().put("UPDATED_CONFIG", applicationId);
+        configMsg.broadcast();
     }
 }
