@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -221,10 +222,12 @@ public class JemoRuntimeAdmin {
             deployResources = SystemDB.list(DEPLOYMENT_HISTORY_TABLE, DeployResource.class).stream()
                     .sorted(Comparator.comparing((DeployResource r) -> r.timestamp).reversed())
                     .collect(toList());
+            respondWithJson(200, response, deployResources);
         } catch (Exception e) {
-            deployResources = new ArrayList<>();
+            final String message = "Failed to fetch the deployment history: " + e.getMessage();
+            log(Level.SEVERE, message);
+            respondWithJson(400, response, message);
         }
-        respondWithJson(200, response, deployResources);
     }
 
     private static boolean hasMandatoryField(HttpServletResponse response, DeployResource deployResource, String field, String value) throws IOException {
