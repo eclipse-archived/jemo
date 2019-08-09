@@ -50,10 +50,10 @@ public class TestJemoModule extends JemoBaseTest {
 	@Test
 	public void testClose() {
 		Map<String,ScheduledFuture> testWatchdogList = new HashMap<>();
-		JemoModule mod = new JemoModule(new TestModule(), new ModuleMetaData(60001, 1.0, TestModule.class.getSimpleName(), jemoServer.getPluginManager().getModuleLogger(60001, 1.0, TestModule.class))) {
+		JemoModule mod = new JemoModule(new TestModule(), new ModuleMetaData(60001, 1.0, TestModule.class.getSimpleName(), "TestPlugin", jemoServer.getPluginManager().getModuleLogger(60001, 1.0, TestModule.class))) {
 			@Override
 			public synchronized void close() {
-				super.close(); //To change body of generated methods, choose Tools | Templates.
+				super.close();
 				testWatchdogList.putAll(watchdogList);
 			}
 		};
