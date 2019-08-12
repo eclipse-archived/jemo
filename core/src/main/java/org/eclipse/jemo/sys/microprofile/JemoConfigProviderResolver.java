@@ -58,7 +58,7 @@ public class JemoConfigProviderResolver extends ConfigProviderResolver {
 		//we can enforce this in Jemo by allowing this method if there are no current configuration parameters
 		//on the application. if a configuration is specified then we will return an IllegalStateException.
 		Config currentConfig = getConfig(classLoader);
-		if((currentConfig != null && !currentConfig.getPropertyNames().iterator().hasNext()) || currentConfig == null) {
+		if(currentConfig != null && !currentConfig.getPropertyNames().iterator().hasNext()) {
 			//we can set the configuration specified (i.e. save it back to the Jemo configuration store)
 			//1. we need to identify the application id
 			JemoClassLoader appClassLoader = getConfigurationOwner(classLoader);
@@ -69,10 +69,18 @@ public class JemoConfigProviderResolver extends ConfigProviderResolver {
 			//we also need to notify the cluster of the configuration change. (we will throw a runtime exception if this is not possible)
 			Util.B(null, (x) -> appClassLoader.getJemoServer().getPluginManager()
 					.notifyConfigurationChange(appClassLoader.getApplicationId()));
+			
+			//we should also set the new configuration on the current class loader just in-case someone wants to use it immediately.
+			applyConfigToLocalInstance(appClassLoader);
 		} else {
-			throw new IllegalStateException("A configuration for this application already exists. "
-					+ "You can either release the current configuration by calling the releaseConfig method or you can "
-					+ "use the Jemo administration user interface or web services to set new configuration parameters for this application");
+			if(currentConfig == null) {
+				throw new IllegalStateException("A configuration could not be registered against the provided class loader because "
+						+ "no valid Jemo provided JemoClassLoader instance could be found in the class loader chain");
+			} else {
+				throw new IllegalStateException("A configuration for this application already exists. "
+						+ "You can either release the current configuration by calling the releaseConfig method or you can "
+						+ "use the Jemo administration user interface or web services to set new configuration parameters for this application");
+			}
 		}
 	}
 
@@ -80,7 +88,7 @@ public class JemoConfigProviderResolver extends ConfigProviderResolver {
 	public void releaseConfig(Config config) {
 		if(config != null) {
 			JemoClassLoader appClassLoader = getConfigurationOwner(Thread.currentThread().getContextClassLoader());
-			if(appClassLoader != null && appClassLoader.getApplicationConfiguration() != null) {
+			if(appClassLoader != null) {
 				//we should check if the JSON string representation of the config object matches that assigned to the current application.
 				final String currentConfig = toJSONString(appClassLoader.getApplicationConfiguration());
 				final String refConfig = toJSONString(config);
@@ -90,9 +98,17 @@ public class JemoConfigProviderResolver extends ConfigProviderResolver {
 					//we also need to notify the cluster of the configuration change. (we will throw a runtime exception if this is not possible)
 					Util.B(null, (x) -> appClassLoader.getJemoServer().getPluginManager()
 							.notifyConfigurationChange(appClassLoader.getApplicationId()));
+					
+					applyConfigToLocalInstance(appClassLoader);
 				}
 			}
 		}
+	}
+	
+	private void applyConfigToLocalInstance(JemoClassLoader appClassLoader) {
+		//we should also set the new configuration on the current class loader just in-case someone wants to use it immediately.
+		final Map<String, String> jemoConfig = appClassLoader.getJemoServer().getPluginManager().getModuleConfiguration(appClassLoader.getApplicationId());
+		appClassLoader.getApplicationConfiguration().setConfigSource(new JemoConfigSource(jemoConfig));
 	}
 	
 	private String toJSONString(Config config) {

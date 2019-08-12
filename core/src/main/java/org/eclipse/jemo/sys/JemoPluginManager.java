@@ -1708,8 +1708,8 @@ public class JemoPluginManager {
                 Set<JemoModule> appModuleList = jemoServer.getPluginManager().loadPluginModules(targetPluginId);
                 if(!appModuleList.isEmpty()) {
                 	//get a reference to the class loader holding all the modules for this application
-	                JemoClassLoader appClassLoader = (JemoClassLoader)appModuleList.iterator().next()
-	                		.getModule().getClass().getClassLoader();
+	                JemoClassLoader appClassLoader = appModuleList.iterator().next()
+	                		.getClassLoader();
 	                
 	                //apply the configuration to the class loader in-case this application is using the Micro-profile 3.0 configuration
 	                appClassLoader.getApplicationConfiguration().setConfigSource(new JemoConfigSource(config));

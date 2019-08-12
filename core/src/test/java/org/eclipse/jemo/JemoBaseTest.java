@@ -36,6 +36,8 @@ import org.junit.AfterClass;
 import static org.eclipse.jemo.api.JemoParameter.*;
 import static org.eclipse.jemo.internal.model.AmazonAWSRuntime.AWS_REGION_PROP;
 import static org.eclipse.jemo.internal.model.GCPRuntime.GCP_REGION_PROP;
+import static org.eclipse.jemo.sys.JemoPluginManager.PLUGIN_ID;
+import static org.eclipse.jemo.sys.JemoPluginManager.PLUGIN_VERSION;
 
 /**
  *
@@ -117,6 +119,13 @@ public abstract class JemoBaseTest {
 			pluginManagerMod.uploadPlugin(pluginId, pluginVersion, pluginName, pluginDataStream);
 			return null;
 		});
+		//we should now wait at most 30 seconds for the application to appear in the registration list.
+		int ctr = 30;
+		while(!jemoServer.getPluginManager().getApplicationList().stream()
+				.anyMatch(app -> PLUGIN_ID(app.getId()) == pluginId && pluginVersion == PLUGIN_VERSION(app.getId())) && ctr != 0) {
+			Thread.sleep(1000);
+			ctr--;
+		}
 	}
 	
 	protected void processBatch(int moduleId,double moduleVersion, String moduleClass) throws InterruptedException {
