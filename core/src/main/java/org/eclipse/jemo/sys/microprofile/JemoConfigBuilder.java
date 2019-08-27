@@ -46,7 +46,7 @@ public class JemoConfigBuilder implements ConfigBuilder {
 		//of a specified type so we will use that instead and the effect will be the same.
 		classLoader.getClassList().stream()
 			.map(clsName -> Util.I(null, x -> Class.forName(clsName, false, classLoader)))
-			.filter(cls -> cls != null && ConfigSource.class.isAssignableFrom(cls))
+			.filter(cls -> ConfigSource.class.isAssignableFrom(cls))
 			.flatMap(cls -> Stream.of(cls.getConstructors()))
 			.filter(cstr -> cstr.getParameterCount() == 0)
 			.map(cstr -> Util.I(null, x -> (ConfigSource)cstr.newInstance()))
@@ -60,7 +60,7 @@ public class JemoConfigBuilder implements ConfigBuilder {
 	public ConfigBuilder addDiscoveredConverters() {
 		classLoader.getClassList().stream()
 			.map(clsName -> Util.I(null, x -> Class.forName(clsName, false, classLoader)))
-			.filter(cls -> cls != null && Converter.class.isAssignableFrom(cls))
+			.filter(cls -> Converter.class.isAssignableFrom(cls))
 			.flatMap(cls -> Stream.of(cls.getConstructors()))
 			.filter(cstr -> cstr.getParameterCount() == 0)
 			.map(cstr -> Util.I(null, x -> (Converter)cstr.newInstance()))

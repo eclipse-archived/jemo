@@ -17,12 +17,14 @@
 
 package org.eclipse.jemo.sys.microprofile;
 
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Priority;
 
@@ -55,7 +57,12 @@ public class JemoConfig implements Config {
 
 	@Override
 	public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
-		final String configVal = configSource.get().getValue(propertyName);
+		final String configVal = StreamSupport.stream(getConfigSources().spliterator(), false)
+				.filter(src -> src.getPropertyNames().contains(propertyName))
+				.limit(1)
+				.map(src -> src.getValue(propertyName))
+				.findFirst().orElse(null);
+
 		if(configVal == null) {
 			return Optional.empty();
 		} else {
@@ -64,8 +71,13 @@ public class JemoConfig implements Config {
 			} else {
 				//we need to check if a data converter exists for this class type
 				Converter c = dataConverters.stream()
-						.filter(dc -> Arrays.asList(dc.getClass().getTypeParameters()[0].getBounds())
+						.filter(dc -> Arrays.asList(dc.getClass().getGenericInterfaces())
 									.stream()
+									.filter(i -> i instanceof ParameterizedType)
+									.map(i -> (ParameterizedType)i)
+									.filter(i -> Converter.class.isAssignableFrom(((Class)i.getRawType())))
+									.filter(i -> i.getActualTypeArguments().length == 1)
+									.map(i -> i.getActualTypeArguments()[0])
 									.filter(t -> t instanceof Class)
 									.map(t -> (Class)t)
 									.anyMatch(cls -> cls.isAssignableFrom(propertyType))
@@ -127,7 +139,12 @@ public class JemoConfig implements Config {
 	@Override
 	public Iterable<ConfigSource> getConfigSources() {
 		ArrayList<ConfigSource> result = new ArrayList<>();
-		result.addAll(mpConfigSource.get() == null ? Arrays.asList(configSource.get()) : Arrays.asList(configSource.get(), mpConfigSource.get()));
+		if(mpConfigSource.get() != null) {
+			result.add(mpConfigSource.get());
+		}
+		if(configSource.get() != null) {
+			result.add(configSource.get());
+		}
 		result.addAll(otherSources);
 		result.sort((s1,s2) -> Integer.valueOf(s1.getOrdinal()).compareTo(Integer.valueOf(s2.getOrdinal())));
 		return result;
