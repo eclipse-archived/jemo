@@ -41,6 +41,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -63,6 +64,8 @@ public class Util {
     public static final Pattern INT_PATTERN = Pattern.compile("[0-9]+");
     public static final Pattern RANGE_PATTERN = Pattern.compile("([0-9]+)-([0-9]+)");
     public static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
+    
+    private static Consumer<Integer> EXIT_SYSTEM = ((exitCode) -> System.exit(exitCode));
 
     static {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -585,4 +588,7 @@ public class Util {
         return properties == null || properties.getProperty(propertyName) == null ? defaultValue : properties.getProperty(propertyName);
     }
 
+    public static void killJVM(int exitCode) {
+    	EXIT_SYSTEM.accept(exitCode);
+    }
 }

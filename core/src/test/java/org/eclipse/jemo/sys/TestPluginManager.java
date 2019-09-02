@@ -1,6 +1,6 @@
 /*
 ********************************************************************************
-* Copyright (c) 9th November 2018 Cloudreach Limited Europe
+* Copyright (c) 2nd August 2019
 *
 * This program and the accompanying materials are made available under the
 * terms of the Eclipse Public License 2.0 which is available at
@@ -24,13 +24,20 @@ import org.eclipse.jemo.internal.model.JemoMessage;
 import org.eclipse.jemo.internal.model.CloudProvider;
 import org.eclipse.jemo.internal.model.CloudRuntime;
 import org.eclipse.jemo.internal.model.SystemDBObject;
+import org.eclipse.jemo.internal.model.ValidationResult;
 import org.eclipse.jemo.internal.model.JemoApplicationMetaData;
 import org.eclipse.jemo.runtime.MemoryRuntime;
+import org.eclipse.jemo.sys.JemoPluginManager.ModuleInfoCache;
+import org.eclipse.jemo.sys.auth.JemoAuthentication;
 import org.eclipse.jemo.sys.internal.Util;
+import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.HttpServletRequestAdapter;
 import org.eclipse.jemo.HttpServletResponseAdapter;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,6 +49,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.servlet.ServletOutputStream;
@@ -50,6 +64,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.ws.Holder;
 import static org.junit.Assert.*;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -59,6 +76,39 @@ import org.junit.Test;
 public class TestPluginManager extends JemoGSMTest {
 	
 	public TestPluginManager() throws Throwable { super(); }
+	
+	public static class InstallModeJemo extends AbstractJemo {
+		public InstallModeJemo() {
+			super("INSTALL", 9000, 9001, null, null, 10, false, false, null, Level.OFF, UUID.randomUUID().toString());
+		}
+
+		@Override
+		public boolean isInInstallationMode() {
+			// TODO Auto-generated method stub
+			return true;
+		}
+	}
+	
+	Lock sequential = new ReentrantLock();
+
+	@Before
+	public void setUp() throws Exception {
+	    sequential.lock();
+	}
+
+	@After
+	public void tearDown() throws Exception {
+	    sequential.unlock();
+	}
+	
+	@Test
+	public void testConstructor() throws Throwable {
+		//1. we need to test the creation of a plugin manager in installation mode.
+		InstallModeJemo jemoInst = new InstallModeJemo();
+		//before we startup jemo we need to make sure our invalid permissions runtime is being used.
+		JemoPluginManager pluginManager = new JemoPluginManager(jemoInst);
+		assertTrue(pluginManager.getModuleList(jemoInst.getINSTANCE_ID()).length == 0);
+	}
 	
 	@Test
 	public void testGetInstances() throws Throwable {
@@ -172,24 +222,31 @@ public class TestPluginManager extends JemoGSMTest {
 	}
 	
 	@Test
-	public void test_listApplications() {
+	public void test_listApplications() throws Throwable {
 		//we need to set a mock cloud runtime up first
-		List<JemoApplicationMetaData> origKnownApplications = new ArrayList<>();
-		List<JemoApplicationMetaData> knownApplications = Util.getFieldValue(jemoServer.getPluginManager(),"KNOWN_APPLICATIONS",List.class);
+		Map<String, JemoApplicationMetaData> origKnownApplications = new HashMap<>();
+		Map<String, JemoApplicationMetaData> knownApplications = Util.getFieldValue(jemoServer.getPluginManager(),"KNOWN_APPLICATIONS",Map.class);
 		try {
-			origKnownApplications.addAll(knownApplications);
+			origKnownApplications.putAll(knownApplications);
 			knownApplications.clear();
 			CloudProvider.defineCustomeRuntime(new MemoryRuntime() {
 				List<SystemDBObject> objList = new ArrayList<>();
 				
 				@Override
 				public <T> List<T> listNoSQL(String tableName, Class<T> objectType) {
-					return objList.stream().map(obj -> objectType.cast(obj)).collect(Collectors.toList());
+					if(tableName.contentEquals(JemoPluginManager.MODULE_METADATA_TABLE)) {
+						JemoApplicationMetaData app = new JemoApplicationMetaData();
+						app.setId("11_Test-1-1.0.jar");
+						app.setEnabled(false);
+						return List.of(objectType.cast(app));
+					} else {
+						return objList.stream().map(obj -> objectType.cast(obj)).collect(Collectors.toList());
+					}
 				}
 
 				@Override
 				public Set<String> listPlugins() {
-					return Arrays.asList("10_Test-1-1.0.jar").stream().collect(Collectors.toSet());
+					return Arrays.asList("10_Test-1-1.0.jar", "11_Test-1-1.0.jar").stream().collect(Collectors.toSet());
 				}
 
 				@Override
@@ -209,16 +266,26 @@ public class TestPluginManager extends JemoGSMTest {
 			});
 			jemoServer.getPluginManager().listApplications();
 			assertEquals(1,knownApplications.size());
-			JemoApplicationMetaData resultMetadata = knownApplications.iterator().next();
+			JemoApplicationMetaData resultMetadata = knownApplications.entrySet().iterator().next().getValue();
 			assertNotNull(resultMetadata);
 			JemoApplicationMetaData targetMetadata = new JemoApplicationMetaData();
 			targetMetadata.setId("10_Test-1-1.0.jar");
-			assertEquals(targetMetadata.getId(),resultMetadata.getId());
 		}finally {
 			CloudProvider.defineCustomeRuntime(null);
 			knownApplications.clear();
-			knownApplications.addAll(origKnownApplications);
+			knownApplications.putAll(origKnownApplications);
 		}
+		
+		//upload a test module
+		uploadPlugin(101, 1.0, "TestApp", new ByteArrayInputStream(buildTestApplicationJar()));
+		JemoApplicationMetaData metaData = jemoServer.getPluginManager().getApplication(101, 1.0);
+		assertNotNull(metaData);
+		metaData.setEnabled(false);
+		getPluginManagerModule().changeState(metaData, null);
+		//a list of the applications should still return this app
+		assertTrue(jemoServer.getPluginManager().listApplications().stream().anyMatch(app -> app.getId().equals(metaData.getId())));
+		//the application should also be disabled.
+		assertFalse(jemoServer.getPluginManager().listApplications().stream().anyMatch(app -> app.getId().equals(metaData.getId()) && app.isEnabled()));
 	}
 	
 	@Test
@@ -227,9 +294,13 @@ public class TestPluginManager extends JemoGSMTest {
 			CloudProvider.defineCustomeRuntime(new MemoryRuntime() {
 				@Override
 				public <T> T retrieve(String key, Class<T> objType) {
-					Map<String,String> currentDefinitions = new HashMap<>();
-					currentDefinitions.put("www.google.com","/3/v1.0/google");
-					return objType.cast(currentDefinitions);
+					if(key.equals(JemoPluginManager.VHOST_KEY)) {
+						Map<String,String> currentDefinitions = new HashMap<>();
+						currentDefinitions.put("www.google.com","/3/v1.0/google");
+						return objType.cast(currentDefinitions);
+					}
+					
+					return super.retrieve(key, objType);
 				}
 			});
 			assertNotNull(jemoServer.getPluginManager().getVirtualHostMap());
@@ -282,11 +353,31 @@ public class TestPluginManager extends JemoGSMTest {
 		
 	}
 	
+	public static abstract class TestAbstractModule implements Module {
+		@Override
+		public void construct(Logger logger, String name, int id, double version) {}
+	}
+	
+	public static class TestInstantiationErrorModule implements Module {
+		static {
+			Util.B(null, x -> { throw new RuntimeException(); }); 
+		}
+		
+		@Override
+		public void construct(Logger logger, String name, int id, double version) {}
+	}
+	
+	private byte[] buildTestApplicationJar() throws Throwable {
+		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+		Util.createJar(byteOut, TestModule.class, TestPluginManager.class, TestAbstractModule.class, 
+								TestInstantiationErrorModule.class, TestWebModule.class,
+								TestWebModuleTimeout.class);
+		return byteOut.toByteArray();
+	}
+	
 	@Test
 	public void test_MODULE_LIST() throws Throwable {
-		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-		Util.createJar(byteOut, TestModule.class, TestPluginManager.class);
-		byte[] jarBytes = byteOut.toByteArray();
+		byte[] jarBytes = buildTestApplicationJar();
 		try(JemoClassLoader clsLoader = new JemoClassLoader(UUID.randomUUID().toString(), jarBytes)) {
 			List<String> moduleList = jemoServer.getPluginManager().MODULE_LIST("10_Test-1-1.0.jar", jarBytes, clsLoader);
 			assertTrue(moduleList.contains(TestModule.class.getName()));
@@ -301,12 +392,41 @@ public class TestPluginManager extends JemoGSMTest {
 		}finally {
 			CloudProvider.defineCustomeRuntime(null);
 		}
+		//lets now run a test where the get module list runtime method will return an empty list instead of null.
+		try {
+			CloudProvider.defineCustomeRuntime(new MemoryRuntime() {
+				@Override
+				public List<String> getModuleList(String jarFileName) {
+					return List.of();
+				}
+			});
+			assertTrue(jemoServer.getPluginManager().MODULE_LIST("100_Test-1-1.0.jar", jarBytes, null).isEmpty());
+		}finally {
+			CloudProvider.defineCustomeRuntime(null);
+		}
+		//now we need to test a case where an error is thrown by the runtime. we expect an empty list to be returned.
+		try {
+			CloudProvider.defineCustomeRuntime(new MemoryRuntime() {
+				@Override
+				public List<String> getModuleList(String jarFileName) {
+					throw new RuntimeException();
+				}
+			});
+			assertTrue(jemoServer.getPluginManager().MODULE_LIST("100_Test-1-1.0.jar", jarBytes, null).isEmpty());
+		}finally {
+			CloudProvider.defineCustomeRuntime(null);
+		}
+		assertTrue(jemoServer.getPluginManager()
+				.MODULE_LIST(List.of("org.test.ClassDoesNotExist"), new JemoClassLoader(UUID.randomUUID().toString(), jarBytes)).isEmpty());
 	}
 	
 	@Test
 	public void test_listPlugins() {
 		List<JemoApplicationMetaData> appList = Util.getFieldValue(jemoServer.getPluginManager(), "APPLICATION_LIST", List.class);
-		assertEquals(appList.size(), jemoServer.getPluginManager().listPluginIds().size());
+		assertEquals("APPLIST = "+appList.stream().map(app -> app.getId()).collect(Collectors.joining(","))+
+				" PLUGIN_ID = "+jemoServer.getPluginManager().listPluginIds().stream().map(id -> String.valueOf(id))
+				.collect(Collectors.joining(",")),
+				appList.stream().map(app -> JemoPluginManager.PLUGIN_ID(app.getId())).distinct().count(), jemoServer.getPluginManager().listPluginIds().size());
 	}
 	
 	public static class TestWebModule implements Module {
@@ -321,6 +441,23 @@ public class TestPluginManager extends JemoGSMTest {
 
 		@Override
 		public void process(HttpServletRequest request, HttpServletResponse response) throws Throwable {}
+		
+	}
+	
+	public static class TestWebModuleTimeout implements Module {
+
+		@Override
+		public void construct(Logger logger, String name, int id, double version) {}
+		
+		@Override
+		public String getBasePath() {
+			return "/test_timeout";
+		}
+
+		@Override
+		public void process(HttpServletRequest request, HttpServletResponse response) throws Throwable {
+			Thread.sleep(TimeUnit.SECONDS.toMillis(21));
+		}
 		
 	}
 	
@@ -510,5 +647,202 @@ public class TestPluginManager extends JemoGSMTest {
 		});
 		assertNotNull(contentType.value);
 		assertEquals("text/html",contentType.value);
+		
+		uploadPlugin(102, 1.0, "TestWebAppTimeout", new ByteArrayInputStream(buildTestApplicationJar()));
+		AtomicReference<String> errorValue = new AtomicReference<>(null);
+		HttpServletRequest request = new HttpServletRequestAdapter() {
+			@Override
+			public String getServletPath() {
+				return "/102/v1.0/test_timeout";
+			}
+
+			@Override
+			public String getRequestURI() {
+				return getServletPath();
+			}
+			
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer("https://localhost:8080"+getServletPath());
+			}
+
+			@Override
+			public String getHeader(String string) {
+				return "Basic "+Base64.getEncoder().encodeToString("test:test".getBytes(Util.UTF8_CHARSET));
+			}
+
+			@Override
+			public String getParameter(String string) {
+				return null;
+			}
+
+			@Override
+			public String getMethod() {
+				return "GET";
+			}
+			
+			
+			
+		};
+		HttpServletResponse response = new HttpServletResponseAdapter() {
+			@Override
+			public void setContentType(String string) {
+				contentType.value = string;
+			}
+
+			@Override
+			public void setContentLength(int i) {
+				
+			}
+
+			@Override
+			public ServletOutputStream getOutputStream() throws IOException {
+				return new ServletOutputStream() {
+					private ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+					
+					@Override
+					public boolean isReady() {
+						return true;
+					}
+
+					@Override
+					public void setWriteListener(WriteListener wl) {}
+
+					@Override
+					public void write(int b) throws IOException {
+						byteOut.write(b);
+					}
+				};
+			}
+			
+			
+			@Override
+			public void sendError(int i, String string) throws IOException {
+				errorValue.set(string);
+			}
+		};
+		jemoServer.getPluginManager().process(request, response);
+		assertNotNull(errorValue.get());
+		assertTrue(errorValue.get().contains("TimeoutException"));
+		assertEquals(Integer.valueOf(1), Util.getFieldValue(jemoServer.getPluginManager(), "TIMEOUT_COUNT", Integer.class));
+		//set the maximum timeouts to 1
+		Util.setFieldValue(jemoServer.getPluginManager(), "MAX_TIMEOUT_COUNT", 1);
+		jemoServer.getPluginManager().process(request, response);
+		assertEquals(Integer.valueOf(0), Util.getFieldValue(jemoServer.getPluginManager(), "TIMEOUT_COUNT", Integer.class));
+		//now lets set the memory threshold to something higher than the total amout of free memory and we should get a System.exit(0) call
+		try {
+			Util.setFieldValue(JemoPluginManager.class, "MEMORY_THRESHOLD", Long.MAX_VALUE);
+			AtomicInteger exitValue = new AtomicInteger(0);
+			final Consumer<Integer> EXIT_SYSTEM = (exitCode) -> exitValue.set(exitCode);
+			Util.setFieldValue(Util.class, "EXIT_SYSTEM", EXIT_SYSTEM); 
+			jemoServer.getPluginManager().process(request, response);
+			assertEquals(0, exitValue.get());
+			Util.setFieldValue(jemoServer.getPluginManager(), "MAX_TIMEOUT_COUNT", 10);
+			jemoServer.getPluginManager().process(request, response);
+			assertEquals(Integer.valueOf(2), Util.getFieldValue(jemoServer.getPluginManager(), "TIMEOUT_COUNT", Integer.class));
+		}finally {
+			Util.setFieldValue(JemoPluginManager.class, "MEMORY_THRESHOLD", 100000l);
+		}
+	}
+	
+	/**
+	 * this scope of this test is to ensure that the getLiveModuleList method behaves as expected
+	 * and that the existance of this test will avoid any regressions in the method.
+	 * 
+	 * @throws Throwable if an unexpected error occurs.
+	 */
+	@Test
+	public void test_getLiveModuleList() throws Throwable {
+		//1. test that the default application is present in all locations.
+		Map<String, ModuleInfoCache> LIVE_MODULE_CACHE = Util.getFieldValue(jemoServer.getPluginManager(), "LIVE_MODULE_CACHE", Map.class);
+		jemoServer.getPluginManager().getActiveLocationList().forEach(l -> {
+			assertTrue(jemoServer.getPluginManager().getLiveModuleList(l)
+				.stream()
+				.anyMatch(m -> m.getId() == 0));
+			//verify again as we will get a different path after cache but want the same result
+			assertTrue(jemoServer.getPluginManager().getLiveModuleList(l)
+					.stream()
+					.anyMatch(m -> m.getId() == 0));
+			//3. we now need to accelerate the expiration of the cache and validate the execution path.
+			ModuleInfoCache modInfo = LIVE_MODULE_CACHE.get(l); //we expect the cache to be present.
+			assertNotNull(modInfo);
+			//set the cache date to 6 minutes in the past, which will force it to be flagged as expired
+			Util.setFieldValue(modInfo, "cachedOn", System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(6));
+			//verify again, the cache will be rebuilt so we should have the same result.
+			assertTrue(jemoServer.getPluginManager().getLiveModuleList(l)
+					.stream()
+					.anyMatch(m -> m.getId() == 0));
+		});
+		//2. if we ask for the list from an invalid location we are expecting an empty list
+		assertTrue(jemoServer.getPluginManager().getLiveModuleList("INVALID").isEmpty());
+	}
+	
+	/**
+	 * this test will validate whether all of the aspects of plugin removal work correctly within the PluginManager.
+	 * 
+	 * @throws Throwable
+	 */
+	@Test
+	public void test_deletePlugin() throws Throwable {
+		//1. we need to upload a fake plugin with a fake module in it.
+		uploadPlugin(101, 1.0, "TestApp", new ByteArrayInputStream(buildTestApplicationJar()));
+		//2. let's validate that this plugin actually has made it into the system.
+		assertFalse(jemoServer.getPluginManager().loadModules("101_TestApp-1.0.jar").isEmpty());
+		//3. we should remove this plugin
+		getPluginManagerModule().deletePlugin(101, 1.0, null);
+		assertNull(jemoServer.getPluginManager().loadModules("101_TestApp-1.0.jar"));
+		//4. let's try and delete the same plugin again but with a defined user
+		getPluginManagerModule().deletePlugin(101, 1.0, JemoAuthentication.getDefaultAdminUser());
+		assertNull(jemoServer.getPluginManager().loadModules("101_TestApp-1.0.jar"));
+		//5. upload the app again and try and delete it in a version that does not exist
+		uploadPlugin(101, 1.0, "TestApp", new ByteArrayInputStream(buildTestApplicationJar()));
+		assertFalse(jemoServer.getPluginManager().loadModules("101_TestApp-1.0.jar").isEmpty());
+		getPluginManagerModule().deletePlugin(101, 2.0, null);
+		assertFalse(jemoServer.getPluginManager().loadModules("101_TestApp-1.0.jar").isEmpty());
+		getPluginManagerModule().deletePlugin(100, 2.0, null);
+		assertFalse(jemoServer.getPluginManager().loadModules("101_TestApp-1.0.jar").isEmpty());
+	}
+	
+	@Test
+	public void test_cacheStreamToFile() throws Throwable {
+		File f = JemoPluginManager.cacheStreamToFile(new ByteArrayInputStream("hello".getBytes(Util.UTF8_CHARSET)));
+		assertEquals("hello", Util.toString(new FileInputStream(f)));
+		f.delete();
+	}
+	
+	@Test
+	public void test_buildPluginClassLoader() throws Throwable {
+		final String pluginJar = "101_TestClassLoader-1.0.jar";
+		CloudProvider.getInstance().getRuntime().store(pluginJar + ".crc32", Long.valueOf(0));
+		try {
+			assertNull(jemoServer.getPluginManager().buildPluginClassLoader(pluginJar));
+		}finally {
+			CloudProvider.getInstance().getRuntime().delete(CloudProvider.getInstance().getRuntime().getDefaultCategory(), pluginJar + ".crc32");
+		}
+	}
+	
+	@Test
+	public void test_getServerInstance() {
+		AbstractJemo defaultJemo = Util.getFieldValue(AbstractJemo.class, "DEFAULT_INSTANCE", AbstractJemo.class);
+		try {
+			Util.setFieldValue(AbstractJemo.class, "DEFAULT_INSTANCE", null);
+			assertEquals(Jemo.SERVER_INSTANCE.getINSTANCE_ID(), JemoPluginManager.getServerInstance().getINSTANCE_ID());
+		}finally {
+			Util.setFieldValue(AbstractJemo.class, "DEFAULT_INSTANCE", defaultJemo);
+		}
+	}
+	
+	public static class EventModuleWithTimeoutException implements Module {
+
+		@Override
+		public JemoMessage process(JemoMessage message) throws Throwable {
+			throw new TimeoutException();
+		}
+		
+	}
+	
+	@Test
+	public void test_runWithModule() throws Throwable {
+		
 	}
 }

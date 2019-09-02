@@ -218,21 +218,23 @@ public class JemoClassLoader extends URLClassLoader {
 		if(downloadAndCache) {
 			cacheDirectory.mkdirs();
 			//ok we need to download and unpack
-			Jemo.log(Level.INFO, "[%s] has not been downloaded, and will now be downloaded and unpacked.", jarModule);
 			CloudBlob blob = CloudProvider.getInstance().getRuntime().getModule(jarModule);
-			int retry = 5;
-			do {
-				try(FileOutputStream fout = new FileOutputStream(new File(cacheDirectory, "create_date"))) {
-					fout.write(String.valueOf(blob.getCreatedDate()).getBytes("UTF-8"));
-					retry = 0;
-				} catch(FileNotFoundException fnfEx) {
-					try { Thread.sleep(500); } catch(InterruptedException irrEx) {}//wait 500 ms.
-					cacheDirectory.mkdirs();
-				}
-				retry--;
-			}while(retry > 0);
-			this.createdDate = blob.getCreatedDate();
-			initClassLoader(blob.getDataStream());
+			if(blob != null) {
+				Jemo.log(Level.INFO, "[%s] has not been downloaded, and will now be downloaded and unpacked.", jarModule);
+				int retry = 5;
+				do {
+					try(FileOutputStream fout = new FileOutputStream(new File(cacheDirectory, "create_date"))) {
+						fout.write(String.valueOf(blob.getCreatedDate()).getBytes("UTF-8"));
+						retry = 0;
+					} catch(FileNotFoundException fnfEx) {
+						try { Thread.sleep(500); } catch(InterruptedException irrEx) {}//wait 500 ms.
+						cacheDirectory.mkdirs();
+					}
+					retry--;
+				}while(retry > 0);
+				this.createdDate = blob.getCreatedDate();
+				initClassLoader(blob.getDataStream());
+			}
 		} else {
 			this.crc32 = moduleCrc;
 			try(FileInputStream fin = new FileInputStream(new File(cacheDirectory, "create_date"))) {

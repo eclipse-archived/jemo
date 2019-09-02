@@ -113,8 +113,12 @@ public abstract class JemoBaseTest {
 		jemoServer = null;
 	}
 	
+	protected JemoPluginManager.PluginManagerModule getPluginManagerModule() {
+		return (JemoPluginManager.PluginManagerModule) jemoServer.getPluginManager().loadModuleByClassName(0, JemoPluginManager.PluginManagerModule.class.getName()).getModule();
+	}
+	
 	protected void uploadPlugin(int pluginId, double pluginVersion, String pluginName, InputStream pluginDataStream) throws Throwable {
-		JemoPluginManager.PluginManagerModule pluginManagerMod = (JemoPluginManager.PluginManagerModule) jemoServer.getPluginManager().loadModuleByClassName(0, JemoPluginManager.PluginManagerModule.class.getName()).getModule();
+		JemoPluginManager.PluginManagerModule pluginManagerMod = getPluginManagerModule();
 		jemoServer.getPluginManager().runWithModuleContext(Void.class, x -> {
 			pluginManagerMod.uploadPlugin(pluginId, pluginVersion, pluginName, pluginDataStream);
 			return null;

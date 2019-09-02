@@ -126,7 +126,7 @@ public abstract class AbstractJemo {
      * Flag used to denote if the current run is in installation mode.
      * If true, it means certain parts of the application are not initialized yet.
      */
-    private static boolean IS_IN_INSTALLATION_MODE = false;
+    private boolean IS_IN_INSTALLATION_MODE = false;
 
     private static final String PARAM_SET_NAME = "PARAM_SET_NAME";
 
@@ -839,7 +839,7 @@ public abstract class AbstractJemo {
         return (PLUGIN_WHITELIST.isEmpty() || PLUGIN_WHITELIST.contains(pluginId)) && (PLUGIN_BLACKLIST.isEmpty() || !PLUGIN_BLACKLIST.contains(pluginId));
     }
 
-    public static boolean isInInstallationMode() {
+    public boolean isInInstallationMode() {
         return IS_IN_INSTALLATION_MODE;
     }
 
