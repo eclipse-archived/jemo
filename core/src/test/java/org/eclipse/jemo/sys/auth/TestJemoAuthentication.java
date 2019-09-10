@@ -371,33 +371,6 @@ public class TestJemoAuthentication extends JemoBaseTest {
 		return newGroup.getId();
 	}
 	
-	protected String getAdminGroupId() throws Throwable {
-		HttpServletRequestAdapter request = new HttpServletRequestAdapter() {
-			@Override
-			public String getMethod() {
-				return "GET";
-			}
-			
-			@Override
-			public String getRequestURI() {
-				return "/jemo/authentication/group";
-			}
-		};
-		HttpServletResponseAdapter response = new HttpServletResponseAdapter() {};
-		//we need an admin user to get the Admin group
-		JemoAuthentication.processRequest(getAdminUser(), request, response);
-		JemoGroup[] groupList = (JemoGroup[]) Jemo.fromJSONString(Jemo.classOf(new JemoGroup[] {}), response.getResponseBody());
-		Field groupAdminField = JemoAuthentication.class.getDeclaredField("GROUP_ADMIN");
-		groupAdminField.setAccessible(true);
-		for(JemoGroup group : groupList) {
-			if(group.getId().equals(Util.md5((String)groupAdminField.get(JemoAuthentication.class)))) {
-				return group.getId();
-			}
-		}
-		
-		return null;
-	}
-	
 	protected JemoUser getAdminUser() throws Throwable {
 		JemoUser adminUser = new JemoUser();
 		adminUser.setAdmin(true);
