@@ -20,6 +20,7 @@ import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.Jemo;
 import org.eclipse.jemo.api.*;
 import org.eclipse.jemo.api.Module;
+import org.eclipse.jemo.inject.JemoProvider;
 import org.eclipse.jemo.internal.model.*;
 import org.eclipse.jemo.internal.model.JemoError;
 import org.eclipse.jemo.sys.auth.JemoAuthentication;
@@ -36,6 +37,8 @@ import org.eclipse.jemo.sys.microprofile.JemoConfigProviderResolver;
 import org.eclipse.jemo.sys.microprofile.JemoConfigSource;
 import org.eclipse.jemo.sys.microprofile.MicroProfileConfigSource;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.config.spi.ConfigBuilder;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 import org.eclipse.microprofile.config.spi.ConfigSource;
@@ -52,8 +55,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -77,6 +84,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import javax.enterprise.inject.spi.DeploymentException;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
@@ -1450,6 +1462,11 @@ public class JemoPluginManager {
                     CloudProvider.getInstance().getRuntime().store(pluginFile + ".crc32", jemoLoader.getCRC32());
                     List<String> jemoModuleList = jemoServer.getPluginManager().MODULE_LIST(classList, jemoLoader);
                     if (!jemoModuleList.isEmpty()) {
+                    	//we need to initialise the class loader with all of the needed references to enable microprofile configuration.
+                    	jemoServer.getPluginManager().prepareApplicationClassLoader(jemoLoader, pluginId, pluginVersion, null);
+                    	//if this jar contains active Jemo modules we need to validate those modules to ensure they are ok.
+                    	validateApplication(jemoLoader,jemoModuleList);
+                    	
                         //so the first thing we should be doing here is producing the new metadata for this application and saving it to the cloud
                         JemoApplicationMetaData app = jemoServer.getPluginManager().registerModule(pluginFile, authUser.getUsername(), jemoLoader, jemoModuleList);
                         SystemDB.save(MODULE_METADATA_TABLE, app); //save this metadata
@@ -1500,6 +1517,68 @@ public class JemoPluginManager {
             } finally {
                 tmpUploadFile.delete();
             }
+        }
+        
+        /**
+         * this method will validate this module to make sure that any instantiation actions can be executed correctly
+         * before we tell the other servers to consume it.
+         * 
+         * @param jemoLoader the class loader used to introspect the module
+         * @param jemoModuleList the list of jemo modules
+         * @throws Throwable if there was an issue with module validation.
+         */
+        private void validateApplication(JemoClassLoader jemoLoader,List<String> jemoModuleList) throws DeploymentException {
+        	Config mpConfig = ConfigProvider.getConfig(jemoLoader);
+        	for(String jemoModuleClass : jemoModuleList) {
+        		Module mod = createModuleInstance(jemoLoader,jemoModuleClass);
+        		List<Field> mpConfigResInjectFields = Util.listFieldsWithAnnotations(mod, Inject.class, ConfigProperty.class);
+        		//we now need to apply the defined rules for resource injection into fields.
+        		for(Field f : mpConfigResInjectFields) {
+        			f.setAccessible(true);
+        			ConfigProperty cfgDef = f.getAnnotation(ConfigProperty.class);
+        			final Class fieldType = f.getType();
+        			final String cfgKey = JemoConfig.getConfigKey(cfgDef, mod, f);
+        			final boolean hasConfig = !cfgDef.defaultValue().equals(ConfigProperty.UNCONFIGURED_VALUE) || 
+        					StreamSupport.stream(mpConfig.getPropertyNames().spliterator(), false)
+        					.anyMatch(c -> c.equals(cfgKey));
+        			
+        			if(Optional.class.isAssignableFrom(fieldType)) {
+       
+        			} else if(Provider.class.isAssignableFrom(fieldType)) {
+        				if(!hasConfig) {
+        					throw new DeploymentException("The module "+jemoModuleClass+" expects the configuration value "+cfgKey
+        							+" to be injected into the class but a value for this configuration key has not been set. Deployment has failed");
+        				}
+        			} else {
+        				if(!hasConfig) {
+        					throw new DeploymentException("The module "+jemoModuleClass+" expects the configuration value "+cfgKey
+        							+" to be injected into the class but a value for this configuration key has not been set. Deployment has failed");
+        				}
+        			}
+        		}
+        	}
+        }
+        
+        
+        /**
+         * this method will create a new instance of a module but will not instantiate or initialise it
+         * 
+         * @param jemoLoader the jemo class loader from which to pull the version of the class to load
+         * @param moduleClassName the name of the module class which should be created from the class loader.
+         * @return null if the module cannot be instantiated and an instance of the module if it was created successfully.
+         */
+        private Module createModuleInstance(JemoClassLoader jemoLoader,String moduleClassName) {
+        	try {
+                return Module.class.cast(jemoLoader.loadClass(moduleClassName).getConstructor().newInstance());
+            } catch (ClassNotFoundException | IllegalAccessException clsNfEx) { //will never happen because we already checked above.
+                jemoServer.LOG(Level.WARNING, "[%d][%s][%s] the module could not be loaded because of a class loading error: %s", jemoLoader.getApplicationId(), String.valueOf(jemoLoader.getApplicationVersion()), moduleClassName, clsNfEx.getMessage());
+            } catch (NoClassDefFoundError clsErr) {
+                jemoServer.LOG(Level.WARNING, "I was unable to initialize the module %s because I could not load a class it is dependant on %s please check that the dependancies are correct in your pom", moduleClassName, clsErr.getMessage());
+            } catch (Throwable instEx) {
+                jemoServer.LOG(Level.WARNING, "I was unable to initialize the class %s because of the error %s - {%s}", moduleClassName, instEx.getMessage(), JemoError.toString(instEx));
+            }
+        	
+        	return null;
         }
 
         /**
@@ -2136,6 +2215,22 @@ public class JemoPluginManager {
             appMetadata.getFixed().add(m.getClass().getName());
         }
     }
+    
+    /**
+     * this method will add metadata and object references to the class loader to identify the application
+     * resource context
+     * 
+     * @param appClassLoader a reference to the class loader where this application is located.
+     * @param applicationId the id of the application
+     * @param applicationVersion the version of the application
+     * @param moduleConfig the configuration of this application, if the value is null then we will retrieve the configuration from within this method.
+     */
+    protected void prepareApplicationClassLoader(JemoClassLoader appClassLoader,int applicationId,double applicationVersion,Map<String, String> moduleConfig) {
+    	appClassLoader.setApplicationConfiguration(new JemoConfig(moduleConfig == null ? getModuleConfiguration(applicationId) : moduleConfig,new MicroProfileConfigSource(appClassLoader)));
+    	appClassLoader.setApplicationId(applicationId);
+    	appClassLoader.setApplicationVersion(applicationVersion);
+    	appClassLoader.setJemoServer(jemoServer);
+    }
 
     /**
      * we generally need to re-think how this is done because it really only makes sense to load
@@ -2171,10 +2266,9 @@ public class JemoPluginManager {
                     PLUGIN_MANAGER_MODULE.documentation.unloadModule(jarFileName);
                     jemoServer.LOG(Level.INFO, "[%s][%s] loading module classes %s", jarFileName, Jemo.logDateFormat.format(new java.util.Date(uploadDate.value)), newModuleList);
                     
+                    //prepare the class loader with application metadata.
                     moduleConfig = getModuleConfiguration(pluginId);
-                    jemoClassLoaderHolder.value.setApplicationConfiguration(new JemoConfig(moduleConfig,new MicroProfileConfigSource(jemoClassLoaderHolder.value)));
-                    jemoClassLoaderHolder.value.setApplicationId(pluginId);
-                    jemoClassLoaderHolder.value.setJemoServer(jemoServer);
+                    prepareApplicationClassLoader(jemoClassLoaderHolder.value, pluginId, pluginVersion, moduleConfig);
                     
                     //at this point we will want to update the application metadata. (if we don't already know about it of course)
                     appMetadata = KNOWN_APPLICATIONS.getOrDefault(jarFileName, new JemoApplicationMetaData());
@@ -2202,44 +2296,76 @@ public class JemoPluginManager {
                     moduleEndpointMap.remove(entry.getKey());
                 });
                 unloadPlugin(jarFileName); //we should un-load the module here.
-
+                final JemoConfig mpConfig;
+                if(!newModuleList.isEmpty()) {
+                	mpConfig = (JemoConfig)ConfigProvider.getConfig(jemoClassLoaderHolder.value);
+                } else {
+                	mpConfig = null;
+                }
                 newModuleList.forEach((cls) -> {
                     //each module will have to be instantiated and stored in the plugin cache for this instance.
                     try {
-                        Module mod = Module.class.cast(jemoClassLoaderHolder.value.loadClass(cls).getConstructor().newInstance());
-                        ModuleMetaData metaData = new ModuleMetaData(pluginId, pluginVersion, mod.getClass().getSimpleName(), jarFileName, getModuleLogger(pluginId, pluginVersion, mod.getClass()));
-                        JemoModule jemoModule = new JemoModule(mod, metaData, jemoClassLoaderHolder.value);
-                        //register the module to receive and process messages during the initialisation phase.
-                        Set<JemoModule> moduleSet = LIVE_MODULE_MAP.get(jarFileName);
-                        if (moduleSet == null) {
-                            moduleSet = new HashSet<>();
-                            LIVE_MODULE_MAP.put(jarFileName, moduleSet);
+                        Module mod = PLUGIN_MANAGER_MODULE.createModuleInstance(jemoClassLoaderHolder.value, cls);
+                        if(mod != null) {
+	                        ModuleMetaData metaData = new ModuleMetaData(pluginId, pluginVersion, mod.getClass().getSimpleName(), jarFileName, getModuleLogger(pluginId, pluginVersion, mod.getClass()));
+	                        JemoModule jemoModule = new JemoModule(mod, metaData, jemoClassLoaderHolder.value);
+	                        //register the module to receive and process messages during the initialisation phase.
+	                        Set<JemoModule> moduleSet = LIVE_MODULE_MAP.get(jarFileName);
+	                        if (moduleSet == null) {
+	                            moduleSet = new HashSet<>();
+	                            LIVE_MODULE_MAP.put(jarFileName, moduleSet);
+	                        }
+	                        moduleSet.add(jemoModule);
+	                        runWithModule(jemoModule, jemoServer.getWORK_EXECUTOR(), (m) -> {
+	                        	mod.MODULE_INFO_MAP.put(mod, new Module.ModuleInfo(metaData.getLog(), metaData.getName(), pluginId, pluginVersion));
+	                            //we need to get a list of the fields which have the @Inject annotation and the @ConfigProperty annotation.
+	                        	List<Field> configFields = Util.listFieldsWithAnnotations(mod, Inject.class, ConfigProperty.class);
+	                        	for(Field configField : configFields) {
+	                        		configField.setAccessible(true);
+	                        		ConfigProperty cfg = configField.getAnnotation(ConfigProperty.class);
+	                        		final String cfgKey = JemoConfig.getConfigKey(cfg, mod, configField);
+	                        		Class configType = configField.getType();
+	                        		if(Optional.class.isAssignableFrom(configField.getType()) || Provider.class.isAssignableFrom(configField.getType())) {
+	                        			final ParameterizedType type = (ParameterizedType)configField.getGenericType();
+	                        			configType = (Class)type.getActualTypeArguments()[0];
+	                        			if(Optional.class.isAssignableFrom(configField.getType())) {
+	                        				configField.set(mod, Optional.ofNullable(
+	                        						mpConfig.getOptionalValue(cfgKey, configType, 
+	                        								cfg.defaultValue().equals(ConfigProperty.UNCONFIGURED_VALUE) ? null : cfg.defaultValue()
+	                        						).orElse(null)
+	                        					));
+	                        			} else {
+	                        				configField.set(mod, new JemoProvider(
+	                        						mpConfig.getOptionalValue(cfgKey, configType, 
+	                        								cfg.defaultValue().equals(ConfigProperty.UNCONFIGURED_VALUE) ? null : cfg.defaultValue()
+	                        						).orElse(null)
+	                        					));
+	                        			}
+	                        		} else {
+	                        			configField.set(mod, mpConfig.getOptionalValue(cfgKey, configType, 
+                								cfg.defaultValue().equals(ConfigProperty.UNCONFIGURED_VALUE) ? null : cfg.defaultValue()
+                						).orElse(null));
+	                        		}
+	                        	}
+	                        	mod.construct(metaData.getLog(), metaData.getName(), pluginId, pluginVersion);
+	                            if (installDate.value == null) {
+	                                mod.installed(); //we should actually only call this if this module version has never been installed.
+	                            } else if (installDate.value < uploadDate.value) {
+	                                mod.upgraded();
+	                            }
+	                            //before we start we need to grab the configuration for the module and set it.
+	                            mod.configure(moduleConfig);
+	                            mod.start();
+	                            appMetadata.getLimits().put(cls, JemoApplicationMetaData.JemoModuleLimits.wrap(mod.getLimits()));
+	                            return null;
+	                        }, 60);
+	                        addModuleToApplicationMetadata(appMetadata, mod);
+	                        if(JemoModule.implementsWeb(mod.getClass())) {
+		                        jemoServer.LOG(Level.INFO, "[%s][%f][%s] will process HTTP/HTTPS/WEBSOCKET requests from the base path: %s", String.valueOf(pluginId), pluginVersion, mod.getClass().getSimpleName(), 
+		                        		jemoServer.getPluginManager().getModuleEndpoint(appMetadata, mod));
+		                        moduleEndpointMap.put(jemoServer.getPluginManager().getModuleEndpoint(appMetadata, mod), jarFileName);
+	                        }
                         }
-                        moduleSet.add(jemoModule);
-                        runWithModule(jemoModule, jemoServer.getWORK_EXECUTOR(), (m) -> {
-                        	mod.MODULE_INFO_MAP.put(mod, new Module.ModuleInfo(metaData.getLog(), metaData.getName(), pluginId, pluginVersion));
-                            mod.construct(metaData.getLog(), metaData.getName(), pluginId, pluginVersion);
-                            if (installDate.value == null) {
-                                mod.installed(); //we should actually only call this if this module version has never been installed.
-                            } else if (installDate.value < uploadDate.value) {
-                                mod.upgraded();
-                            }
-                            //before we start we need to grab the configuration for the module and set it.
-                            mod.configure(moduleConfig);
-                            mod.start();
-                            appMetadata.getLimits().put(cls, JemoApplicationMetaData.JemoModuleLimits.wrap(mod.getLimits()));
-                            return null;
-                        }, 60);
-                        addModuleToApplicationMetadata(appMetadata, mod);
-                        if(JemoModule.implementsWeb(mod.getClass())) {
-	                        jemoServer.LOG(Level.INFO, "[%s][%f][%s] will process HTTP/HTTPS/WEBSOCKET requests from the base path: %s", String.valueOf(pluginId), pluginVersion, mod.getClass().getSimpleName(), 
-	                        		jemoServer.getPluginManager().getModuleEndpoint(appMetadata, mod));
-	                        moduleEndpointMap.put(jemoServer.getPluginManager().getModuleEndpoint(appMetadata, mod), jarFileName);
-                        }
-                    } catch (ClassNotFoundException | IllegalAccessException clsNfEx) { //will never happen because we already checked above.
-                        jemoServer.LOG(Level.WARNING, "[%d][%s][%s] the module could not be loaded because of a class loading error: %s", pluginId, String.valueOf(pluginVersion), cls, clsNfEx.getMessage());
-                    } catch (NoClassDefFoundError clsErr) {
-                        jemoServer.LOG(Level.WARNING, "I was unable to initialize the module %s because I could not load a class it is dependant on %s please check that the dependancies are correct in your pom", cls, clsErr.getMessage());
                     } catch (Throwable instEx) {
                         jemoServer.LOG(Level.WARNING, "I was unable to initialize the class %s because of the error %s - {%s}", cls, instEx.getMessage(), JemoError.toString(instEx));
                     }

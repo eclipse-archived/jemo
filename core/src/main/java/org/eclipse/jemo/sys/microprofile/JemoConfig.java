@@ -17,6 +17,7 @@
 
 package org.eclipse.jemo.sys.microprofile;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,8 +29,10 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Priority;
 
+import org.eclipse.jemo.api.Module;
 import org.eclipse.jemo.sys.internal.Util;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 import org.eclipse.microprofile.config.spi.Converter;
 
@@ -57,11 +60,15 @@ public class JemoConfig implements Config {
 
 	@Override
 	public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType) {
+		return getOptionalValue(propertyName, propertyType, null);
+	}
+	
+	public <T> Optional<T> getOptionalValue(String propertyName, Class<T> propertyType, String defaultValue) {
 		final String configVal = StreamSupport.stream(getConfigSources().spliterator(), false)
 				.filter(src -> src.getPropertyNames().contains(propertyName))
 				.limit(1)
 				.map(src -> src.getValue(propertyName))
-				.findFirst().orElse(null);
+				.findFirst().orElse(defaultValue);
 
 		if(configVal == null) {
 			return Optional.empty();
@@ -167,4 +174,7 @@ public class JemoConfig implements Config {
 		}
 	}
 	
+	public static String getConfigKey(ConfigProperty cfg,Module jemoModule,Field configField) {
+		return cfg.name().isEmpty() ? jemoModule.getClass().getName()+"."+configField.getName() : cfg.name();
+	}
 }
