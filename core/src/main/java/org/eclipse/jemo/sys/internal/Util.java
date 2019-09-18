@@ -591,4 +591,21 @@ public class Util {
     public static void killJVM(int exitCode) {
     	EXIT_SYSTEM.accept(exitCode);
     }
+    
+    /**
+     * this method will return a list of all the declared fields in a class or an object instance which 
+     * contains all of the annotations passed in the class list
+     * 
+     * @param instance the class reference or instance of a class
+     * @param annotations the list of annotations the field should have.
+     * @return a list of the fields that contain all of the annotations passed.
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	public static List<Field> listFieldsWithAnnotations(Object instance, Class... annotations) {
+    	List<Class> annotationList = Arrays.asList(annotations);
+    	return Arrays.asList(instance.getClass().getDeclaredFields())
+    		.stream()
+    		.filter(f -> annotationList.stream().allMatch(a -> !Arrays.asList(f.getAnnotationsByType(a)).isEmpty()))
+    		.collect(Collectors.toList());
+    }
 }

@@ -190,6 +190,7 @@ public class JemoClassLoader extends URLClassLoader {
 	private volatile Set<String> localClassList = null;
 	private volatile JemoConfig appConfig = null;
 	private volatile int applicationId = 0;
+	private volatile double applicationVersion = 1.0;
 	private volatile AbstractJemo jemoServer = null;
 	
 	public JemoClassLoader(String uniqueKey, byte[] data) {
@@ -637,5 +638,13 @@ public class JemoClassLoader extends URLClassLoader {
 
 	public void setJemoServer(AbstractJemo jemoServer) {
 		this.jemoServer = jemoServer;
+	}
+	
+	public double getApplicationVersion() {
+		return this.applicationVersion;
+	}
+	
+	public void setApplicationVersion(double applicationVersion) {
+		this.applicationVersion = applicationVersion;
 	}
 }

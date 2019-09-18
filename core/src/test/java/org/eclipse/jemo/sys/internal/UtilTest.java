@@ -22,10 +22,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.jar.JarInputStream;
+
+import javax.annotation.Priority;
+import javax.enterprise.inject.Any;
+import javax.inject.Inject;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -125,4 +130,20 @@ public class UtilTest {
 		assertEquals(Util.class.getMethods().length, classFromBytes.getMethods().length);
 	}
 	
+	private static class ClassWithAnnotations {
+		
+		@Inject
+		@Any
+		private String var1 = "a";
+		
+		@Inject
+		private String var2 = "b";
+		
+	}
+	
+	@Test
+	public void test_listFieldsWithAnnotations() throws Throwable {
+		List<Field> fields = Util.listFieldsWithAnnotations(new ClassWithAnnotations(), Inject.class, Any.class);
+		assertEquals(1, fields.size());
+	}
 }
