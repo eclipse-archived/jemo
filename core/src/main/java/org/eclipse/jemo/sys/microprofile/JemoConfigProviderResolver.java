@@ -48,7 +48,11 @@ public class JemoConfigProviderResolver extends ConfigProviderResolver {
 
 	@Override
 	public ConfigBuilder getBuilder() {
-		return new JemoConfigBuilder(getConfigurationOwner(Thread.currentThread().getContextClassLoader()));
+		return getBuilder(getConfigurationOwner(Thread.currentThread().getContextClassLoader()));
+	}
+	
+	protected ConfigBuilder getBuilder(JemoClassLoader loader) {
+		return new JemoConfigBuilder(loader);
 	}
 
 	@Override

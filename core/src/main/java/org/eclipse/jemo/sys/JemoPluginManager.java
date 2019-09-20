@@ -33,6 +33,7 @@ import org.eclipse.jemo.sys.internal.ManagedFunctionWithException;
 import org.eclipse.jemo.sys.internal.SystemDB;
 import org.eclipse.jemo.sys.internal.Util;
 import org.eclipse.jemo.sys.microprofile.JemoConfig;
+import org.eclipse.jemo.sys.microprofile.JemoConfigBuilder;
 import org.eclipse.jemo.sys.microprofile.JemoConfigProviderResolver;
 import org.eclipse.jemo.sys.microprofile.JemoConfigSource;
 import org.eclipse.jemo.sys.microprofile.MicroProfileConfigSource;
@@ -1796,9 +1797,10 @@ public class JemoPluginManager {
 	                
 	                //apply the configuration to the class loader in-case this application is using the Micro-profile 3.0 configuration
 	                appClassLoader.getApplicationConfiguration().setConfigSource(new JemoConfigSource(config));
-	                
+	               
 	                //broadcast the configuration change event to applications implementing the native Jemo interface.
 	                appModuleList.parallelStream().forEach((m) -> {
+	                	Util.B(null, x -> jemoServer.getPluginManager().applyInjectedConfigurationToModule(m.getModule(), appClassLoader.getApplicationConfiguration()));
 	                    m.getModule().configure(config);
 	                });
                 }
@@ -2226,12 +2228,59 @@ public class JemoPluginManager {
      * @param moduleConfig the configuration of this application, if the value is null then we will retrieve the configuration from within this method.
      */
     protected void prepareApplicationClassLoader(JemoClassLoader appClassLoader,int applicationId,double applicationVersion,Map<String, String> moduleConfig) {
-    	appClassLoader.setApplicationConfiguration(new JemoConfig(moduleConfig == null ? getModuleConfiguration(applicationId) : moduleConfig,new MicroProfileConfigSource(appClassLoader)));
     	appClassLoader.setApplicationId(applicationId);
     	appClassLoader.setApplicationVersion(applicationVersion);
     	appClassLoader.setJemoServer(jemoServer);
+    	appClassLoader.setApplicationConfiguration((JemoConfig)new JemoConfigBuilder(appClassLoader)
+        		.setJemoConfig(moduleConfig)
+        		.addDefaultSources()
+        		.addDiscoveredConverters()
+        		.addDiscoveredSources().build());
+    	
     }
 
+    /**
+     * this method will apply an injected configuration value to an existing module
+     * 
+     * @param mod a reference to the module
+     * @param moduleConfig a reference to the overall configuration for an application
+     * @throws IllegalAccessException if there was a problem accessing the field within the module
+     */
+    protected void applyInjectedConfigurationToModule(final Module mod, final JemoConfig moduleConfig) throws IllegalAccessException {
+    	List<Field> configFields = Util.listFieldsWithAnnotations(mod, Inject.class, ConfigProperty.class);
+    	for(Field configField : configFields) {
+    		configField.setAccessible(true);
+    		ConfigProperty cfg = configField.getAnnotation(ConfigProperty.class);
+    		final String cfgKey = JemoConfig.getConfigKey(cfg, mod, configField);
+    		Class configType = configField.getType();
+    		if(Optional.class.isAssignableFrom(configField.getType()) || Provider.class.isAssignableFrom(configField.getType())) {
+    			final ParameterizedType type = (ParameterizedType)configField.getGenericType();
+    			configType = (Class)type.getActualTypeArguments()[0];
+    			if(Optional.class.isAssignableFrom(configField.getType())) {
+    				configField.set(mod, Optional.ofNullable(
+    						moduleConfig.getOptionalValue(cfgKey, configType, 
+    								cfg.defaultValue().equals(ConfigProperty.UNCONFIGURED_VALUE) ? null : cfg.defaultValue()
+    						).orElse(null)
+    					));
+    			} else {
+    				Object fieldValue = configField.get(mod);
+    				Object newFieldValue = moduleConfig.getOptionalValue(cfgKey, configType, 
+								cfg.defaultValue().equals(ConfigProperty.UNCONFIGURED_VALUE) ? null : cfg.defaultValue()
+    						).orElse(null);
+    				if(fieldValue != null && fieldValue instanceof JemoProvider) {
+    					((JemoProvider)fieldValue).set(newFieldValue);
+    				} else {
+	    				configField.set(mod, new JemoProvider(newFieldValue));
+    				}
+    			}
+    		} else {
+    			configField.set(mod, moduleConfig.getOptionalValue(cfgKey, configType, 
+						cfg.defaultValue().equals(ConfigProperty.UNCONFIGURED_VALUE) ? null : cfg.defaultValue()
+				).orElse(null));
+    		}
+    	}
+    }
+    
     /**
      * we generally need to re-think how this is done because it really only makes sense to load
      * the modules physically into memory when they are actually needed and if they have not been used for
@@ -2304,7 +2353,9 @@ public class JemoPluginManager {
                 }
                 newModuleList.forEach((cls) -> {
                     //each module will have to be instantiated and stored in the plugin cache for this instance.
+                	final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
                     try {
+                    	Thread.currentThread().setContextClassLoader(jemoClassLoaderHolder.value);
                         Module mod = PLUGIN_MANAGER_MODULE.createModuleInstance(jemoClassLoaderHolder.value, cls);
                         if(mod != null) {
 	                        ModuleMetaData metaData = new ModuleMetaData(pluginId, pluginVersion, mod.getClass().getSimpleName(), jarFileName, getModuleLogger(pluginId, pluginVersion, mod.getClass()));
@@ -2319,34 +2370,7 @@ public class JemoPluginManager {
 	                        runWithModule(jemoModule, jemoServer.getWORK_EXECUTOR(), (m) -> {
 	                        	mod.MODULE_INFO_MAP.put(mod, new Module.ModuleInfo(metaData.getLog(), metaData.getName(), pluginId, pluginVersion));
 	                            //we need to get a list of the fields which have the @Inject annotation and the @ConfigProperty annotation.
-	                        	List<Field> configFields = Util.listFieldsWithAnnotations(mod, Inject.class, ConfigProperty.class);
-	                        	for(Field configField : configFields) {
-	                        		configField.setAccessible(true);
-	                        		ConfigProperty cfg = configField.getAnnotation(ConfigProperty.class);
-	                        		final String cfgKey = JemoConfig.getConfigKey(cfg, mod, configField);
-	                        		Class configType = configField.getType();
-	                        		if(Optional.class.isAssignableFrom(configField.getType()) || Provider.class.isAssignableFrom(configField.getType())) {
-	                        			final ParameterizedType type = (ParameterizedType)configField.getGenericType();
-	                        			configType = (Class)type.getActualTypeArguments()[0];
-	                        			if(Optional.class.isAssignableFrom(configField.getType())) {
-	                        				configField.set(mod, Optional.ofNullable(
-	                        						mpConfig.getOptionalValue(cfgKey, configType, 
-	                        								cfg.defaultValue().equals(ConfigProperty.UNCONFIGURED_VALUE) ? null : cfg.defaultValue()
-	                        						).orElse(null)
-	                        					));
-	                        			} else {
-	                        				configField.set(mod, new JemoProvider(
-	                        						mpConfig.getOptionalValue(cfgKey, configType, 
-	                        								cfg.defaultValue().equals(ConfigProperty.UNCONFIGURED_VALUE) ? null : cfg.defaultValue()
-	                        						).orElse(null)
-	                        					));
-	                        			}
-	                        		} else {
-	                        			configField.set(mod, mpConfig.getOptionalValue(cfgKey, configType, 
-                								cfg.defaultValue().equals(ConfigProperty.UNCONFIGURED_VALUE) ? null : cfg.defaultValue()
-                						).orElse(null));
-	                        		}
-	                        	}
+	                        	applyInjectedConfigurationToModule(mod, mpConfig);
 	                        	mod.construct(metaData.getLog(), metaData.getName(), pluginId, pluginVersion);
 	                            if (installDate.value == null) {
 	                                mod.installed(); //we should actually only call this if this module version has never been installed.
@@ -2368,6 +2392,8 @@ public class JemoPluginManager {
                         }
                     } catch (Throwable instEx) {
                         jemoServer.LOG(Level.WARNING, "I was unable to initialize the class %s because of the error %s - {%s}", cls, instEx.getMessage(), JemoError.toString(instEx));
+                    } finally {
+                    	Thread.currentThread().setContextClassLoader(contextClassLoader);
                     }
                 });
                 if (!newModuleList.isEmpty()) {

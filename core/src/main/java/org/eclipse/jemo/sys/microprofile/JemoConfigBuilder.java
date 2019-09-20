@@ -1,6 +1,7 @@
 package org.eclipse.jemo.sys.microprofile;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.stream.Stream;
 
@@ -18,10 +19,17 @@ public class JemoConfigBuilder implements ConfigBuilder {
 	
 	private JemoConfig config = new JemoConfig();
 	private JemoClassLoader classLoader;
+	private Map<String,String> jemoConfig = null;
 
 	public JemoConfigBuilder(JemoClassLoader classLoader) {
 		this.classLoader = classLoader;
 	}
+	
+	public JemoConfigBuilder setJemoConfig(Map<String,String> jemoConfig) {
+		this.jemoConfig = jemoConfig;
+		return this;
+	}
+	
 	/**
      * Add the default config sources appearing on the builder's classpath
      * including:
@@ -35,7 +43,7 @@ public class JemoConfigBuilder implements ConfigBuilder {
      */
 	@Override
 	public ConfigBuilder addDefaultSources() {
-		this.config.setConfigSource(new JemoConfigSource(CloudProvider.getInstance().getRuntime().getModuleConfiguration(classLoader.getApplicationId())));
+		this.config.setConfigSource(new JemoConfigSource(jemoConfig != null ? jemoConfig : CloudProvider.getInstance().getRuntime().getModuleConfiguration(classLoader.getApplicationId())));
 		this.config.setMicroProfileSource(new MicroProfileConfigSource(classLoader));
 		return this;
 	}

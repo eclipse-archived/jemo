@@ -2,6 +2,7 @@ package org.eclipse.jemo.sys.microprofile;
 
 import static org.junit.Assert.*;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -9,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
@@ -20,8 +22,10 @@ import org.eclipse.jemo.api.KeyValue;
 import org.eclipse.jemo.sys.JemoClassLoader;
 import org.eclipse.jemo.sys.JemoPluginManager;
 import org.eclipse.jemo.sys.internal.JarEntry;
+import org.eclipse.jemo.sys.internal.Util;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.config.spi.Converter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,8 +62,20 @@ public class MicroProfileConfigTest extends JemoGSMTest {
 	
 	static AtomicReference<TestInjectedConfigModule> INJECTED_CONFIG = new AtomicReference<>(null);
 	
+	public static class LongConverter implements Converter<Long> {
+		final Pattern IS_DIGIT = Pattern.compile("[0-9]+");
+		
+		@Override
+		public Long convert(String value) {
+			if(IS_DIGIT.matcher(value).matches()) {
+				return Long.getLong(value);
+			}
+			return null;
+		}
+	}
+	
 	public static class TestInjectedConfigModule implements FixedModule {
-
+		
 		@Inject
 		@ConfigProperty(name = "config")
 		public String value;
@@ -92,9 +108,44 @@ public class MicroProfileConfigTest extends JemoGSMTest {
 		@ConfigProperty
 		public Optional<String> value8;
 		
+		@Inject
+		@ConfigProperty(name = "config_default_lambda")
+		public Provider<String> value9 = () -> "value";
+		
+		@Inject
+		@ConfigProperty(defaultValue = "value")
+		public Optional<String> value10;
+		
+		@Inject
+		@ConfigProperty(defaultValue = "value")
+		public Provider<String> value11;
+		
+		//let's add some non string variable values to test the conversion a bit.
+		@Inject
+		@ConfigProperty(name = "long_value")
+		public long long_value;
+		
+		@Inject
+		@ConfigProperty(name = "long_array")
+		public long[] long_array;
+		
+		@Inject
+		@ConfigProperty(name = "generic_object")
+		public Map<String,String> generic_object_value;
+		
+		//and now a custom object
+		public static class CustomObject {
+			public int id;
+			public String name;
+			public double version;
+		}
+		
+		@Inject
+		@ConfigProperty(name = "custom_object")
+		public CustomObject custom_value;
+		
 		@Override
 		public void processFixed(String location, String instanceId) throws Throwable {
-			// TODO Auto-generated method stub
 			INJECTED_CONFIG.set(this);
 			WAIT_LATCH.countDown();
 		}
@@ -143,8 +194,12 @@ public class MicroProfileConfigTest extends JemoGSMTest {
 		
 		//3.2 let's validate that the values are what we would expect them to be.
 		setModuleConfig(304, new KeyValue<>("config", "value"), new KeyValue<>("config_opt", "value"), new KeyValue<>("config_dynamic","value"),
-				new KeyValue<>("config_missing","value"),new KeyValue<>("config_dynamic_missing","value"));
-		uploadPlugin(304, 1.0, "MicroProfileConfigTestInjected", TestInjectedConfigModule.class);
+				new KeyValue<>("config_missing","value"),new KeyValue<>("config_dynamic_missing","value"),
+				new KeyValue<>("long_value","10"), new KeyValue<>("long_array","[1,2,3,4,5]"),
+				new KeyValue<>("generic_object","{ \"key\" : \"value\" }"), 
+				new KeyValue<>("custom_object","{ \"id\" : 5, \"name\" : \"aaa\", \"version\" : 1.5 }"),
+				new KeyValue<>("config_default_lambda","value9"));
+		uploadPlugin(304, 1.0, "MicroProfileConfigTestInjected", TestInjectedConfigModule.class, LongConverter.class);
 		startFixedProcesses();
 		WAIT_LATCH.await(5, TimeUnit.SECONDS);
 		assertEquals("value",INJECTED_CONFIG.get().value);
@@ -154,6 +209,10 @@ public class MicroProfileConfigTest extends JemoGSMTest {
 		assertTrue(INJECTED_CONFIG.get().value5.isEmpty());
 		assertEquals("value", INJECTED_CONFIG.get().value6.get());
 		assertEquals("value", INJECTED_CONFIG.get().value7.get());
+		assertEquals(10, INJECTED_CONFIG.get().long_value);
+		assertEquals("value9", INJECTED_CONFIG.get().value9.get());
+		assertEquals("value", INJECTED_CONFIG.get().value10.get());
+		assertEquals("value", INJECTED_CONFIG.get().value11.get());
 		WAIT_LATCH = new CountDownLatch(1);
 		
 		//3.3 we now need to dynamically update the config_dynamic value and it should change as a consequence.
@@ -161,5 +220,11 @@ public class MicroProfileConfigTest extends JemoGSMTest {
 		startFixedProcesses();
 		WAIT_LATCH.await(5, TimeUnit.SECONDS);
 		assertEquals("value2", INJECTED_CONFIG.get().value6.get());
+		
+		WAIT_LATCH = new CountDownLatch(1);
+		removeModuleConfig(304, "config_dynamic_missing");
+		startFixedProcesses();
+		WAIT_LATCH.await(5, TimeUnit.SECONDS);
+		assertNull(INJECTED_CONFIG.get().value7.get());
 	}
 }

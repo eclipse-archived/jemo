@@ -233,6 +233,13 @@ public abstract class JemoBaseTest {
 		};
 	}
 	
+	protected void removeModuleConfig(final int applicationId, String ... configKeys) throws Throwable {
+		setModuleConfig(applicationId, Arrays.asList(configKeys)
+				.stream()
+				.map(k -> new KeyValue<>(k, null))
+				.toArray(KeyValue[]::new));
+	}
+	
 	protected void setModuleConfig(final int applicationId, KeyValue<String> ... configuration) throws Throwable {
 		AtomicInteger status = new AtomicInteger(200);
 		final JemoUser adminUser = getTestAdminUser();
@@ -279,7 +286,7 @@ public abstract class JemoBaseTest {
 						ModuleConfigurationParameter param = new ModuleConfigurationParameter();
 						param.setKey(cfg.getKey());
 						param.setValue(cfg.getValue());
-						param.setOperation(ModuleConfigurationOperation.upsert);
+						param.setOperation(cfg.getValue() == null ? ModuleConfigurationOperation.delete : ModuleConfigurationOperation.upsert);
 						config.getParameters().add(param);
 					});
 				}
