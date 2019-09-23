@@ -238,7 +238,7 @@ public class TestPluginManager extends JemoGSMTest {
 						JemoApplicationMetaData app = new JemoApplicationMetaData();
 						app.setId("11_Test-1-1.0.jar");
 						app.setEnabled(false);
-						return List.of(objectType.cast(app));
+						return Arrays.asList(objectType.cast(app));
 					} else {
 						return objList.stream().map(obj -> objectType.cast(obj)).collect(Collectors.toList());
 					}
@@ -397,7 +397,7 @@ public class TestPluginManager extends JemoGSMTest {
 			CloudProvider.defineCustomeRuntime(new MemoryRuntime() {
 				@Override
 				public List<String> getModuleList(String jarFileName) {
-					return List.of();
+					return new ArrayList<>();
 				}
 			});
 			assertTrue(jemoServer.getPluginManager().MODULE_LIST("100_Test-1-1.0.jar", jarBytes, null).isEmpty());
@@ -417,7 +417,7 @@ public class TestPluginManager extends JemoGSMTest {
 			CloudProvider.defineCustomeRuntime(null);
 		}
 		assertTrue(jemoServer.getPluginManager()
-				.MODULE_LIST(List.of("org.test.ClassDoesNotExist"), new JemoClassLoader(UUID.randomUUID().toString(), jarBytes)).isEmpty());
+				.MODULE_LIST(Arrays.asList("org.test.ClassDoesNotExist"), new JemoClassLoader(UUID.randomUUID().toString(), jarBytes)).isEmpty());
 	}
 	
 	@Test
