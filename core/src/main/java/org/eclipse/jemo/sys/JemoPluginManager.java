@@ -1612,7 +1612,7 @@ public class JemoPluginManager {
             final List<String> jemoModuleList = jemoServer.getPluginManager().MODULE_LIST(pluginJarFileName);
 
             SystemDB.delete(MODULE_METADATA_TABLE, app);
-            cloudRuntime.storeModuleList(pluginJarFileName, List.of()); //store an empty module list
+            cloudRuntime.storeModuleList(pluginJarFileName, Arrays.asList()); //store an empty module list
             jemoServer.getPluginManager().removeApplication(pluginJarFileName);
 
             jemoServer.getLOG_FORMATTER().logEvent(new CloudLogEvent(String.format("[%s][%s][%s][%d][%s][%s] module undeployment succeeded. The following module implementations were undeployed %s",

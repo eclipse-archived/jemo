@@ -1,5 +1,6 @@
 package org.eclipse.jemo.sys;
 
+import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.api.BatchModule;
 import org.eclipse.jemo.api.Frequency;
 import org.eclipse.jemo.api.ModuleLimit;
@@ -8,6 +9,7 @@ import org.eclipse.jemo.sys.internal.SystemDB;
 
 import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.logging.Level.INFO;
 import static org.eclipse.jemo.sys.JemoRuntimeAdmin.DEPLOYMENT_HISTORY_TABLE;
@@ -19,18 +21,9 @@ import static org.eclipse.jemo.sys.JemoRuntimeAdmin.DEPLOYMENT_HISTORY_TABLE;
  */
 public class DeploymentHistoryModule implements BatchModule {
 
-	
-	
-    @Override
-	public void start() {
-		//make sure the deployment history table exists
-    	if(!SystemDB.hasTable(DEPLOYMENT_HISTORY_TABLE)) {
-    		SystemDB.createTable(DEPLOYMENT_HISTORY_TABLE);
-    	}
-	}
-
 	@Override
     public void processBatch(String location, boolean isCloudLocation) throws Throwable {
+		SystemDB.createTable(DEPLOYMENT_HISTORY_TABLE);
         // Delete from the deployment history all deployment records that are 6 or more months old.
         final DeployResource[] recordsToDelete = SystemDB.list(DEPLOYMENT_HISTORY_TABLE, DeployResource.class).stream()
                 .filter(deployResource -> {

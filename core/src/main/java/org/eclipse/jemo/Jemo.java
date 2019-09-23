@@ -63,7 +63,7 @@ public class Jemo extends AbstractJemo {
         GLOBAL_QUEUE_URL = SERVER_INSTANCE.getGLOBAL_QUEUE_URL();
         LOCATION_QUEUE_URL = SERVER_INSTANCE.getLOCATION_QUEUE_URL();
         HOSTNAME = SERVER_INSTANCE.getHOSTNAME();
-        pluginManager = SERVER_INSTANCE.getPluginManager();
+        //pluginManager = SERVER_INSTANCE.getPluginManager(); //we cannot grab a reference to the plugin manager here because we may have not yet setup to the plugin manager
         httpServer = SERVER_INSTANCE.getHttpServer();
 
     }

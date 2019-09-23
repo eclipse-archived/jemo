@@ -17,6 +17,8 @@
 package org.eclipse.jemo.api;
 
 import org.eclipse.jemo.internal.model.JemoMessage;
+import org.eclipse.jemo.sys.JemoClassLoader;
+import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.internal.model.CloudRuntime;
 
 import java.lang.reflect.InvocationTargetException;
@@ -163,5 +165,4 @@ public interface Module {
     default void log(Level level, String msg) {
         MODULE_INFO_MAP.get(this).logger.log(level, msg);
     }
-
 }

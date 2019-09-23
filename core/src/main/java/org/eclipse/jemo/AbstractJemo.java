@@ -333,6 +333,12 @@ public abstract class AbstractJemo {
         //set the default timezone for the application to london
         long start = System.currentTimeMillis();
         TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"));
+        
+        final CloudProvider provider = CloudProvider.getInstance();
+        IS_IN_INSTALLATION_MODE = provider == null;
+        if(IS_IN_INSTALLATION_MODE) {
+        	resetLogInstance(true, null, Level.INFO);
+        }
         //so according to the architecture spec the first thing we should do is to create a unique instance identifier
         //for this running version of Jemo
         //before we calculate a new UUID for this instance lets check if we already have an id saved on our temporary storage for this instance.
@@ -345,15 +351,13 @@ public abstract class AbstractJemo {
 
         // By creating the runtime object we check if the GSM has been setup yet, if it has not then we should tell the user to go into
         // some kind of setup mode so this can be configured. It is the responsibility of the runtime class constructor to trigger this validation.
-        final CloudProvider provider = CloudProvider.getInstance();
-        IS_IN_INSTALLATION_MODE = provider == null;
         if (IS_IN_INSTALLATION_MODE) {
             int port = JEMO_HTTP_MODE == JemoHTTPConnector.MODE.HTTP ? JEMO_HTTP_PORT : JEMO_HTTPS_PORT;
             final String logMessage = String.format("GSM is not setup yet. Please click on the following link to provide configuration: %s", JEMO_HTTP_MODE.name().toLowerCase() + "://localhost:" + port + "/jemo/setup/");
             LOG(Level.WARNING, logMessage);
-            if (System.getProperty(JemoParameter.LOG_LOCAL.label()) != null) {
+            /*if (System.getProperty(JemoParameter.LOG_LOCAL.label()) != null) {
                 System.out.println(logMessage);
-            }
+            }*/
         } else {
             onSuccessfulValidation(provider.getRuntime());
         }
@@ -496,6 +500,11 @@ public abstract class AbstractJemo {
 
         //we need to initialize our plugins/modules first and once they are there we will receive messages which they can process as a result
         pluginManager = new JemoPluginManager(this);
+        synchronized(Jemo.class) {
+	        if(Jemo.pluginManager == null) {
+	        	Jemo.pluginManager = pluginManager;
+	        }
+        }
     }
 
     public synchronized void stop() throws Exception {

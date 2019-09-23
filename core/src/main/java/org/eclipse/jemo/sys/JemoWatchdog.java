@@ -47,40 +47,43 @@ public class JemoWatchdog extends Thread {
 	
 	@Override
 	public void run() {
-		try {
-			//another thing we should look out for is if any of the event processing threads have stopped (as it appears this could happen).
-			ConcurrentLinkedQueue<JemoQueueListener> newQueueListeners = new ConcurrentLinkedQueue<>();
-			jemoServer.getQUEUE_LISTENERS().parallelStream().forEach(ql -> {
-				//now we should check if the last poll time for any event processing was more than 3 hours ago then we need to flag this queue listener as dead and restart it.
-				if(ql.isDead()) {
-					jemoServer.LOG(Level.WARNING, "[%s] queue listener was found dead and was restarted. It last polled the queue at %s and the poll lasted %d seconds", ql.getQueueUrl(),
-						Jemo.logDateFormat.format(new java.util.Date(ql.getLastPoll())), TimeUnit.SECONDS.convert(ql.getLastPollDuration(), TimeUnit.MILLISECONDS));
-					newQueueListeners.add(ql.restart());
-				} else {
-					newQueueListeners.add(ql);
+		//it does not make sense to run the watchdog unless the Jemo server has been setup.
+		if(!jemoServer.isInInstallationMode()) {
+			try {
+				//another thing we should look out for is if any of the event processing threads have stopped (as it appears this could happen).
+				ConcurrentLinkedQueue<JemoQueueListener> newQueueListeners = new ConcurrentLinkedQueue<>();
+				jemoServer.getQUEUE_LISTENERS().parallelStream().forEach(ql -> {
+					//now we should check if the last poll time for any event processing was more than 3 hours ago then we need to flag this queue listener as dead and restart it.
+					if(ql.isDead()) {
+						jemoServer.LOG(Level.WARNING, "[%s] queue listener was found dead and was restarted. It last polled the queue at %s and the poll lasted %d seconds", ql.getQueueUrl(),
+							Jemo.logDateFormat.format(new java.util.Date(ql.getLastPoll())), TimeUnit.SECONDS.convert(ql.getLastPollDuration(), TimeUnit.MILLISECONDS));
+						newQueueListeners.add(ql.restart());
+					} else {
+						newQueueListeners.add(ql);
+					}
+				});
+				jemoServer.getQUEUE_LISTENERS().clear();
+				jemoServer.getQUEUE_LISTENERS().addAll(newQueueListeners);
+				System.gc(); //force garbage collection to keep memory usage low. if we are running on a server VM this will be essential.
+				log(Level.INFO,"[Jemo][Watchdog] System health check has completed successfully. Last Batch Run On: [%s] Batch Current Running: [%s] Last Scheduler Run [%s] Last Scheduler Poll [%s]",
+						Jemo.logDateFormat.format(new java.util.Date(jemoServer.getLastBatchRunDate())), String.valueOf(jemoServer.getBatchRunning()), Jemo.logDateFormat.format(new java.util.Date(jemoServer.getLastSchedulerRun())),
+						Jemo.logDateFormat.format(new java.util.Date(jemoServer.getLAST_SCHEDULER_POLL())));
+				
+				//we should check for any modules that were last used more than 10 minutes ago and if they were we will just simply unload them.
+				jemoServer.getPluginManager().getApplicationList().stream()
+					.filter(app -> {
+						final int pluginId = JemoPluginManager.PLUGIN_ID(app.getId());
+						return pluginId != 0 && pluginId != 1;
+					})
+					.filter(app -> System.currentTimeMillis() - app.getLastUsedOn() > TimeUnit.MINUTES.toMillis(10))
+					.forEach(app -> Util.B(null, x -> jemoServer.getPluginManager().unloadPlugin(app.getId())));
+	
+				if (!jemoServer.isInInstallationMode()) {
+					CloudProvider.getInstance().getRuntime().watchdog(jemoServer.getLOCATION(), jemoServer.getINSTANCE_ID(), jemoServer.getINSTANCE_QUEUE_URL());
 				}
-			});
-			jemoServer.getQUEUE_LISTENERS().clear();
-			jemoServer.getQUEUE_LISTENERS().addAll(newQueueListeners);
-			System.gc(); //force garbage collection to keep memory usage low. if we are running on a server VM this will be essential.
-			log(Level.INFO,"[Jemo][Watchdog] System health check has completed successfully. Last Batch Run On: [%s] Batch Current Running: [%s] Last Scheduler Run [%s] Last Scheduler Poll [%s]",
-					Jemo.logDateFormat.format(new java.util.Date(jemoServer.getLastBatchRunDate())), String.valueOf(jemoServer.getBatchRunning()), Jemo.logDateFormat.format(new java.util.Date(jemoServer.getLastSchedulerRun())),
-					Jemo.logDateFormat.format(new java.util.Date(jemoServer.getLAST_SCHEDULER_POLL())));
-			
-			//we should check for any modules that were last used more than 10 minutes ago and if they were we will just simply unload them.
-			jemoServer.getPluginManager().getApplicationList().stream()
-				.filter(app -> {
-					final int pluginId = JemoPluginManager.PLUGIN_ID(app.getId());
-					return pluginId != 0 && pluginId != 1;
-				})
-				.filter(app -> System.currentTimeMillis() - app.getLastUsedOn() > TimeUnit.MINUTES.toMillis(10))
-				.forEach(app -> Util.B(null, x -> jemoServer.getPluginManager().unloadPlugin(app.getId())));
-
-			if (!jemoServer.isInInstallationMode()) {
-				CloudProvider.getInstance().getRuntime().watchdog(jemoServer.getLOCATION(), jemoServer.getINSTANCE_ID(), jemoServer.getINSTANCE_QUEUE_URL());
+			}catch(Throwable ex) {
+				jemoServer.LOG(Level.INFO,"[Jemo][Watchdog] Error running watchdog: %s", JemoError.toString(ex));
 			}
-		}catch(Throwable ex) {
-			jemoServer.LOG(Level.INFO,"[Jemo][Watchdog] Error running watchdog: %s", JemoError.toString(ex));
 		}
 	}
 }
