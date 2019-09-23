@@ -206,7 +206,7 @@ public class MicroProfileConfigTest extends JemoGSMTest {
 		assertEquals("default", INJECTED_CONFIG.get().value2);
 		assertEquals("value", INJECTED_CONFIG.get().value3);
 		assertEquals("value", INJECTED_CONFIG.get().value4.orElse(null));
-		assertTrue(INJECTED_CONFIG.get().value5.isEmpty());
+		assertFalse(INJECTED_CONFIG.get().value5.isPresent());
 		assertEquals("value", INJECTED_CONFIG.get().value6.get());
 		assertEquals("value", INJECTED_CONFIG.get().value7.get());
 		assertEquals(10, INJECTED_CONFIG.get().long_value);

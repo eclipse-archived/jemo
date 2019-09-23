@@ -55,7 +55,7 @@ public class JemoConfig implements Config {
 	
 	@Override
 	public <T> T getValue(String propertyName, Class<T> propertyType) {
-		return getOptionalValue(propertyName, propertyType).orElseThrow();
+		return getOptionalValue(propertyName, propertyType).get();
 	}
 
 	@Override
