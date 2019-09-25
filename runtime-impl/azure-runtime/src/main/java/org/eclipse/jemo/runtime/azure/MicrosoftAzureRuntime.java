@@ -165,6 +165,7 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
 
     private static final String STORAGE_MODULE_CONTAINER = "jemopluginlib";
     private String ENCRYPTION_KEY;
+    private static String JEMO_VERSION;
 
     public MicrosoftAzureRuntime() throws IOException {
         if (System.getProperty("ECLIPSE_JEMO_AZURE_ENCRYPTION_KEY") != null) {
@@ -184,6 +185,10 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
         LOG_WORKSPACE = readProperty(PROP_LOG_WORKSPACE, properties, "jemo-log-workspace");
         KEY_VAULT = readProperty(PROP_KEYVAULT, properties, "jemokv");
         MSG_MODEL = MESSAGE_MODEL.valueOf(readProperty(PROP_MSG_MODEL, properties, QUEUE.name()));
+
+        final Properties pomProperties = new Properties();
+        pomProperties.load(MicrosoftAzureRuntime.class.getClassLoader().getResourceAsStream("pom.properties"));
+        JEMO_VERSION = pomProperties.getProperty("jemo.pom.version");
     }
 
     static class AzureCredentials {
@@ -1713,6 +1718,7 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
                         .replaceAll("_SUBSCRIPTION_ID_", subscriptionId)
                         .replaceAll("_TENANT_ID_", AZURE_CREDENTIALS().tenantId)
                         .replaceAll("_MSG_MODEL_", MSG_MODEL.name())
+                        .replaceAll("_JEMO_VERSION_", JEMO_VERSION)
         );
 
         return terraformDirPath;

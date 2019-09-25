@@ -22,7 +22,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.eclipse.jemo</groupId>
     <artifactId>jemo</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7-a</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -183,11 +183,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-		  <groupId>com.github.stefanbirkner</groupId>
-		  <artifactId>system-rules</artifactId>
-		  <version>1.19.0</version>
-		  <scope>test</scope>
-		</dependency>
+            <groupId>com.github.stefanbirkner</groupId>
+            <artifactId>system-rules</artifactId>
+            <version>1.19.0</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
@@ -266,6 +266,23 @@
 
     </dependencies>
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/pom.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/pom.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
