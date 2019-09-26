@@ -7,6 +7,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -76,14 +78,14 @@ public class MicroProfileHealthCheckTest extends JemoGSMTest {
 		}
 	}
 	
-	
+	static CountDownLatch EXEC_LATCH;
 	
 	public static class TestMicroprofileHealthCheck implements FixedModule {
 
 		@Override
 		public void processFixed(String location, String instanceId) throws Throwable {
 			// TODO Auto-generated method stub
-			
+			EXEC_LATCH.countDown();
 		}
 		
 	}
@@ -135,10 +137,14 @@ public class MicroProfileHealthCheckTest extends JemoGSMTest {
 		uploadPlugin(41, 1.0, "TestMicroprofileHealthCheck", TestMicroprofileHealthCheck.class, UpHealth.class, ErrorHealth.class);
 
 		//2. let's call in through our endpoint and get the JSON result back.
+		EXEC_LATCH = new CountDownLatch(1);
 		Map<String, Object> wireResult = callHealthCheckService(41, 1.0);
 		assertEquals(State.UP.name(), wireResult.get("status"));
+		startFixedProcesses();
+		EXEC_LATCH.await(5, TimeUnit.SECONDS);
 		
 		//3. let's upload the module again with a down state
+		EXEC_LATCH = new CountDownLatch(1);
 		uploadPlugin(41, 1.0, "TestMicroprofileHealthCheck", TestMicroprofileHealthCheck.class, UpHealth.class, ErrorHealth.class, DownHealth.class);
 		wireResult = callHealthCheckService(41, 1.0);
 		assertEquals(State.DOWN.name(), wireResult.get("status"));
@@ -153,10 +159,15 @@ public class MicroProfileHealthCheckTest extends JemoGSMTest {
 		assertEquals(false, data.get("b"));
 		assertEquals(1, data.get("l"));
 		assertEquals("value", data.get("s"));
+		startFixedProcesses();
+		EXEC_LATCH.await(5, TimeUnit.SECONDS);
 		
 		//4. upload a module with no healthchecks
+		EXEC_LATCH = new CountDownLatch(1);
 		uploadPlugin(41, 1.0, "TestMicroprofileHealthCheck", TestMicroprofileHealthCheck.class);
 		wireResult = callHealthCheckService(41, 1.0);
 		assertNull(wireResult);
+		startFixedProcesses();
+		EXEC_LATCH.await(5, TimeUnit.SECONDS);
 	}
 }

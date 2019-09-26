@@ -196,6 +196,9 @@ public enum CloudProvider {
 
     public static final void defineCustomeRuntime(CloudRuntime runtime) {
         CloudProvider.defaultRuntime = runtime;
+        if(CLOUD_PROVIDER == null) {
+        	CLOUD_PROVIDER = MEMORY; //if you define a custom runtime and no provider is set use the memory provider
+        }
     }
 
     @JsonProperty
