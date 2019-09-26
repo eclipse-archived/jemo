@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: jemo
-          image: eclipse/jemo:1.0.6
+          image: eclipse/jemo:_JEMO_VERSION_
           env:
             - name: ECLIPSE_JEMO_CLOUD
               value: "AZURE"

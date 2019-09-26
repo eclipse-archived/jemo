@@ -88,6 +88,7 @@ import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.Jemo;
 
 import static com.amazonaws.services.s3.model.Region.fromValue;
+import static org.eclipse.jemo.Jemo.JEMO_VERSION;
 import static org.eclipse.jemo.Jemo.executeFailsafe;
 import static org.eclipse.jemo.api.JemoParameter.*;
 import static org.eclipse.jemo.sys.internal.Util.*;
@@ -1579,7 +1580,10 @@ public class AmazonAWSRuntime implements CloudRuntime {
         final String sourceDir = getTerraformClusterDir() + "/kubernetes/";
         copy(sourceDir, kubernetesDirPath, "jemo-svc.yaml", getClass());
         final String replicas = setupParams.parameters().get("autoscaling-group-desired-capacity");
-        applyTemplate(sourceDir, kubernetesDirPath, "jemo-statefulset.yaml", getClass(), x -> x.replaceAll("_JEMO_REPLICAS_", replicas).replaceAll("_REGION_", AWSREGION));
+
+        applyTemplate(sourceDir, kubernetesDirPath, "jemo-statefulset.yaml", getClass(), x -> x.replaceAll("_JEMO_REPLICAS_", replicas)
+                .replaceAll("_REGION_", AWSREGION).replaceAll("_JEMO_VERSION_", JEMO_VERSION)
+        );
         return terraformDirPath;
     }
 
@@ -1707,7 +1711,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
                                         .containers(asList(
                                                 new V1Container()
                                                         .name("jemo")
-                                                        .image("eclipse/jemo:1.0.6")
+                                                        .image("eclipse/jemo:" + JEMO_VERSION)
                                                         .env(asList(
                                                                 new V1EnvVar().name(AWS_REGION_PROP).value(AWSREGION),
                                                                 new V1EnvVar().name(CLOUD.label()).value("AWS"),
