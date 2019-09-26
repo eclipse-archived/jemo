@@ -36,13 +36,18 @@ import org.eclipse.jemo.sys.microprofile.JemoConfig;
 import org.eclipse.jemo.sys.microprofile.JemoConfigBuilder;
 import org.eclipse.jemo.sys.microprofile.JemoConfigProviderResolver;
 import org.eclipse.jemo.sys.microprofile.JemoConfigSource;
+import org.eclipse.jemo.sys.microprofile.JemoHealthCheckResponseProvider;
 import org.eclipse.jemo.sys.microprofile.MicroProfileConfigSource;
+import org.eclipse.jemo.sys.microprofile.MicroProfileHealthCheckWebModule;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.config.spi.ConfigBuilder;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import org.eclipse.microprofile.health.HealthCheck;
+import org.eclipse.microprofile.health.HealthCheckResponse;
+import org.eclipse.microprofile.health.spi.HealthCheckResponseProvider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -56,6 +61,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
@@ -234,6 +240,7 @@ public class JemoPluginManager {
     static {
     	//we should register the Jemo implementation of the Micro-profile ConfigProviderResolver
     	ConfigProviderResolver.setInstance(new JemoConfigProviderResolver());
+    	HealthCheckResponse.setResponseProvider(new JemoHealthCheckResponseProvider());
     }
 
     private final Map<String, Set<JemoModule>> LIVE_MODULE_MAP = new ConcurrentHashMap<>();
@@ -297,10 +304,7 @@ public class JemoPluginManager {
         //load on startup is not a good idea instead we are going to lazy load things when they are requested so we can have smaller clusters running more stuff.
         //so in the beginning all we really need is to know what the potential endpoints for the valid modules are.
         getApplicationList().parallelStream()
-                .forEach(app -> {
-                    moduleEndpointMap.putAll(app.getEndpoints().values().stream()
-                            .collect(Collectors.toMap(e -> e, e -> app.getId())));
-                });
+                .forEach(app -> buildModuleEndpointMapFromApplicationMetadata(app));
 
         addDefaultModuleToAppList("PluginManager", asList(PLUGIN_MANAGER_MODULE), DEFAULT_PLUGIN_JAR_FILE_NAME);
         addDefaultModuleToAppList("StatsPlugin", asList(DEPLOYMENT_HISTORY_MODULE, MODULES_STATS_MODULE), STATS_PLUGIN_JAR_FILE_NAME);
@@ -311,13 +315,17 @@ public class JemoPluginManager {
         isStartup = false;
     }
     
+    private void buildModuleEndpointMapFromApplicationMetadata(JemoApplicationMetaData app) {
+        moduleEndpointMap.putAll(app.getEndpoints().values().stream()
+                .collect(Collectors.toMap(e -> e, e -> app.getId())));
+    }
+    
     private synchronized void setApplicationMetaData(JemoApplicationMetaData appMetadata) {
     	APPLICATION_LIST.removeIf(md -> md.getId().equalsIgnoreCase(appMetadata.getId()));
     	APPLICATION_LIST.add(appMetadata);
     	final Set<String> deadEndpointMappings = moduleEndpointMap.entrySet().stream().filter(e -> appMetadata.getId().equals(e.getValue())).map(e -> e.getKey()).collect(Collectors.toSet());
         deadEndpointMappings.forEach(k -> moduleEndpointMap.remove(k));
-        moduleEndpointMap.putAll(appMetadata.getEndpoints().values().stream()
-                .collect(Collectors.toMap(e -> e, e -> appMetadata.getId())));
+        buildModuleEndpointMapFromApplicationMetadata(appMetadata);
 	    if(appMetadata.getId().equals(DEFAULT_PLUGIN_JAR_FILE_NAME)) {
 	    	moduleEndpointMap.put(PLUGIN_MANAGER_MODULE.getBasePath(), DEFAULT_PLUGIN_JAR_FILE_NAME);
     	}
@@ -1463,17 +1471,15 @@ public class JemoPluginManager {
                     CloudProvider.getInstance().getRuntime().store(pluginFile + ".crc32", jemoLoader.getCRC32());
                     List<String> jemoModuleList = jemoServer.getPluginManager().MODULE_LIST(classList, jemoLoader);
                     if (!jemoModuleList.isEmpty()) {
+                    	JemoApplicationMetaData app = jemoServer.getPluginManager().registerModule(pluginFile, authUser.getUsername(), jemoLoader, jemoModuleList);
+                    	
                     	//we need to initialise the class loader with all of the needed references to enable microprofile configuration.
-                    	jemoServer.getPluginManager().prepareApplicationClassLoader(jemoLoader, pluginId, pluginVersion, null);
+                    	jemoServer.getPluginManager().prepareApplicationClassLoader(jemoLoader, pluginId, pluginVersion, null, app);
                     	//if this jar contains active Jemo modules we need to validate those modules to ensure they are ok.
                     	validateApplication(jemoLoader,jemoModuleList);
                     	
                         //so the first thing we should be doing here is producing the new metadata for this application and saving it to the cloud
-                        JemoApplicationMetaData app = jemoServer.getPluginManager().registerModule(pluginFile, authUser.getUsername(), jemoLoader, jemoModuleList);
                         SystemDB.save(MODULE_METADATA_TABLE, app); //save this metadata
-
-                        //this is pointless
-                        //jemoServer.getPluginManager().storeModuleList(); //store the module list so we know what modules are available in this app for the cluster.
 
                         log.log(Level.INFO, "The Jar %s contains Jemo modules, notify other instances about it so they can process it''s presence accordingly.", pluginFile);
                         //lets save the module list to our module storage unit
@@ -2192,6 +2198,21 @@ public class JemoPluginManager {
             appMetadata.getLimits().put(moduleClass, JemoApplicationMetaData.JemoModuleLimits.wrap(mod.getLimits()));
             addModuleToApplicationMetadata(appMetadata, mod);
         }
+        
+        //add support for microprofile health checks
+        appMetadata.getHealthchecks().clear();
+        for(String clsName : appClassLoader.getClassList()) {
+        	try {
+        		Class cls = appClassLoader.loadClass(clsName);
+        		if(HealthCheck.class.isAssignableFrom(cls)) {
+        			//this is a healthcheck class, let's make sure we can actually create an instance of it.
+        			Constructor<? extends HealthCheck> cst = cls.getConstructor();
+        			HealthCheck check = cst.newInstance();
+        			appMetadata.getHealthchecks().add(cls.getName());
+        			appMetadata.getEndpoints().put(MicroProfileHealthCheckWebModule.class.getName(), getModuleEndpoint(appMetadata, new MicroProfileHealthCheckWebModule()));
+        		}
+        	}catch(Throwable ex) {} //we don't want to abort if there was an error loading the class
+        }
 
         return appMetadata;
     }
@@ -2227,7 +2248,8 @@ public class JemoPluginManager {
      * @param applicationVersion the version of the application
      * @param moduleConfig the configuration of this application, if the value is null then we will retrieve the configuration from within this method.
      */
-    protected void prepareApplicationClassLoader(JemoClassLoader appClassLoader,int applicationId,double applicationVersion,Map<String, String> moduleConfig) {
+    protected void prepareApplicationClassLoader(JemoClassLoader appClassLoader,int applicationId,double applicationVersion,
+    		Map<String, String> moduleConfig, JemoApplicationMetaData appMetadata) {
     	appClassLoader.setApplicationId(applicationId);
     	appClassLoader.setApplicationVersion(applicationVersion);
     	appClassLoader.setJemoServer(jemoServer);
@@ -2236,7 +2258,7 @@ public class JemoPluginManager {
         		.addDefaultSources()
         		.addDiscoveredConverters()
         		.addDiscoveredSources().build());
-    	
+    	appClassLoader.setApplicationMetadata(appMetadata);
     }
 
     /**
@@ -2317,7 +2339,6 @@ public class JemoPluginManager {
                     
                     //prepare the class loader with application metadata.
                     moduleConfig = getModuleConfiguration(pluginId);
-                    prepareApplicationClassLoader(jemoClassLoaderHolder.value, pluginId, pluginVersion, moduleConfig);
                     
                     //at this point we will want to update the application metadata. (if we don't already know about it of course)
                     appMetadata = KNOWN_APPLICATIONS.getOrDefault(jarFileName, new JemoApplicationMetaData());
@@ -2330,6 +2351,7 @@ public class JemoPluginManager {
                         appMetadata.setVersion(pluginVersion);
                         KNOWN_APPLICATIONS.put(appMetadata.getId(), appMetadata);
                     }
+                    prepareApplicationClassLoader(jemoClassLoaderHolder.value, pluginId, pluginVersion, moduleConfig, appMetadata);
                 } else {
                 	//if there are no modules the application really no longer exists.
                 	KNOWN_APPLICATIONS.remove(jarFileName);
@@ -2398,6 +2420,13 @@ public class JemoPluginManager {
                 });
                 if (!newModuleList.isEmpty()) {
                     CloudProvider.getInstance().getRuntime().setModuleInstallDate(jarFileName, System.currentTimeMillis());
+                    if(!appMetadata.getHealthchecks().isEmpty()) {
+                    	ModuleMetaData metaData = new ModuleMetaData(pluginId, pluginVersion, 
+                    			MicroProfileHealthCheckWebModule.class.getSimpleName(), jarFileName, 
+                    			getModuleLogger(pluginId, pluginVersion, MicroProfileHealthCheckWebModule.class));
+                        JemoModule jemoModule = new JemoModule(new MicroProfileHealthCheckWebModule(), metaData, jemoClassLoaderHolder.value);
+                        LIVE_MODULE_MAP.getOrDefault(jarFileName, new HashSet<>()).add(jemoModule);
+                    }
                     System.gc();
                 }
             } catch (OutOfMemoryError memErr) {

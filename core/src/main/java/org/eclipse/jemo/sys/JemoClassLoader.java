@@ -22,6 +22,7 @@ import org.eclipse.jemo.api.Module;
 import org.eclipse.jemo.internal.model.JemoError;
 import org.eclipse.jemo.internal.model.CloudBlob;
 import org.eclipse.jemo.internal.model.CloudProvider;
+import org.eclipse.jemo.internal.model.JemoApplicationMetaData;
 import org.eclipse.jemo.sys.internal.Util;
 import org.eclipse.jemo.sys.microprofile.JemoConfig;
 import org.eclipse.microprofile.config.Config;
@@ -192,6 +193,7 @@ public class JemoClassLoader extends URLClassLoader {
 	private volatile int applicationId = 0;
 	private volatile double applicationVersion = 1.0;
 	private volatile AbstractJemo jemoServer = null;
+	private volatile JemoApplicationMetaData applicationMetadata = null;
 	
 	public JemoClassLoader(String uniqueKey, byte[] data) {
 		this(uniqueKey, data, JemoClassLoader.class.getClassLoader());
@@ -646,5 +648,13 @@ public class JemoClassLoader extends URLClassLoader {
 	
 	public void setApplicationVersion(double applicationVersion) {
 		this.applicationVersion = applicationVersion;
+	}
+
+	public JemoApplicationMetaData getApplicationMetadata() {
+		return applicationMetadata;
+	}
+
+	public void setApplicationMetadata(JemoApplicationMetaData applicationMetadata) {
+		this.applicationMetadata = applicationMetadata;
 	}
 }

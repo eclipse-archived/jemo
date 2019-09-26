@@ -134,7 +134,7 @@ public abstract class HttpServletRequestAdapter implements HttpServletRequest {
 
 	@Override
 	public StringBuffer getRequestURL() {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		return new StringBuffer("https://localhost:8080" + (getServletPath().startsWith("/") ? "" : "/") + getServletPath());
 	}
 
 	@Override
