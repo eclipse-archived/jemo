@@ -33,8 +33,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -42,6 +45,8 @@ import java.util.stream.Collectors;
 
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 
 import org.junit.AfterClass;
 
@@ -394,5 +399,108 @@ public abstract class JemoBaseTest {
 		}
 		
 		return TEST_ADMIN_USER;
+	}
+	
+	protected static class HttpResponseBuilder {
+		int status;
+		byte[] response;
+		String statusMessage;
+		Throwable error;
+		
+		public HttpResponseBuilder withStatus(int status) {
+			this.status = status;
+			return this;
+		}
+		
+		public HttpResponseBuilder withResponse(byte[] response) {
+			this.response = response;
+			return this;
+		}
+		
+		public HttpResponseBuilder withStatusMessage(String statusMessage) {
+			this.statusMessage = statusMessage;
+			return this;
+		}
+		
+		public HttpResponseBuilder withError(Throwable error) {
+			this.error = error;
+			return this;
+		}
+		
+		public HttpResponse build() {
+			return new HttpResponse(status,response,statusMessage,error);
+		}
+	}
+	
+	protected static class HttpResponse {
+		final int status;
+		final byte[] response;
+		final String statusMessage;
+		final Throwable error;
+		
+		private HttpResponse(int status,byte[] response,String statusMessage,Throwable error) {
+			this.status = status;
+			this.response = response;
+			this.statusMessage = statusMessage;
+			this.error = error;
+		}
+
+		public int getStatus() {
+			return status;
+		}
+
+		public byte[] getResponse() {
+			return response;
+		}
+
+		public String getStatusMessage() {
+			return statusMessage;
+		}
+		
+		public Throwable getError() {
+			return error;
+		}
+	}
+	
+	protected HttpResponse callApplicationViaHTTP(int appId,double version, String basePath) {
+		HttpServletRequestAdapter request = new HttpServletRequestAdapter() {
+
+			@Override
+			public String getServletPath() {
+				return "/"+String.valueOf(appId)+"/v"+String.valueOf(version)+(basePath.startsWith("/") ? basePath : "/"+basePath);
+			}
+			
+		};
+		
+		HttpResponseBuilder responseBuilder = new HttpResponseBuilder();
+		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+		HttpServletResponseAdapter response = new HttpServletResponseAdapter() {
+
+			@Override
+			public void setStatus(int i, String string) {
+				responseBuilder.withStatus(i);
+				responseBuilder.withStatusMessage(string);
+			}
+
+			@Override
+			protected OutputStream getInternalOutputStream() {
+				return byteOut;
+			}
+			
+		};
+		
+		try {
+			jemoServer.getPluginManager().process(request, response);
+			responseBuilder.withResponse(byteOut.toByteArray());
+		}catch(Throwable ex) {
+			responseBuilder.withError(ex);
+		}
+		return responseBuilder.build();
+	}
+	
+	protected CountDownLatch runFixedApplication(int appId,double version,CountDownLatch execLatch) throws Throwable {
+		startFixedProcesses();
+		execLatch.await(10, TimeUnit.SECONDS);
+		return new CountDownLatch(1);
 	}
 }
