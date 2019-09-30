@@ -39,6 +39,7 @@ import org.eclipse.jemo.sys.microprofile.JemoConfigSource;
 import org.eclipse.jemo.sys.microprofile.JemoHealthCheckResponseProvider;
 import org.eclipse.jemo.sys.microprofile.MicroProfileConfigSource;
 import org.eclipse.jemo.sys.microprofile.MicroProfileHealthCheckWebModule;
+import org.eclipse.jemo.sys.microprofile.MicroProfileMetricsModule;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -82,6 +83,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.logging.Level;
@@ -250,7 +252,7 @@ public class JemoPluginManager {
     private int TIMEOUT_COUNT = 0;
     private int MAX_TIMEOUT_COUNT = 10;
     private static long MEMORY_THRESHOLD = 100000;
-    static final String MODULE_METADATA_TABLE = "eclipse_jemo_modules";
+    public static final String MODULE_METADATA_TABLE = "eclipse_jemo_modules";
     private final Map<String, JemoApplicationMetaData> KNOWN_APPLICATIONS = new ConcurrentHashMap<>();
     
     /**
@@ -274,6 +276,7 @@ public class JemoPluginManager {
     private PluginManagerModule PLUGIN_MANAGER_MODULE;
     private DeploymentHistoryModule DEPLOYMENT_HISTORY_MODULE;
     private ModulesStatsModule MODULES_STATS_MODULE;
+    private AtomicLong ACTIVE_WORKER_THREADS;
     
 
     public JemoPluginManager(final AbstractJemo jemoServer) {
@@ -313,6 +316,11 @@ public class JemoPluginManager {
             storeModuleList();
         }
         isStartup = false;
+        ACTIVE_WORKER_THREADS = new AtomicLong(0);
+    }
+    
+    public long getActiveWorkerThreads() {
+    	return ACTIVE_WORKER_THREADS.get();
     }
     
     private void buildModuleEndpointMapFromApplicationMetadata(JemoApplicationMetaData app) {
@@ -822,6 +830,7 @@ public class JemoPluginManager {
     private Future<Object> buildModuleFuture(final JemoModule m, final ExecutorService exec, ManagedFunctionWithException<JemoModule, Object> func) {
         return exec.submit(() -> {
             try {
+            	ACTIVE_WORKER_THREADS.incrementAndGet();
             	Thread.currentThread().setContextClassLoader(m.getClassLoader());
                 MODULE_CONTEXT_MAP.put(Thread.currentThread().getId(), new ModuleExecutionContext(m.getModule(), m.getMetaData(), jemoServer));
                 return func.applyHandleErrors(m);
@@ -830,6 +839,7 @@ public class JemoPluginManager {
                 return ex;
             } finally {
                 MODULE_CONTEXT_MAP.remove(Thread.currentThread().getId());
+                ACTIVE_WORKER_THREADS.decrementAndGet();
             }
         });
     }
@@ -2213,6 +2223,9 @@ public class JemoPluginManager {
         		}
         	}catch(Throwable ex) {} //we don't want to abort if there was an error loading the class
         }
+        
+        //add support for microprofile metrics, these will always be present in the system regardless of whether this is a microprofile application or not.
+        appMetadata.getEndpoints().put(MicroProfileMetricsModule.class.getName(), getModuleEndpoint(appMetadata, new MicroProfileMetricsModule()));
 
         return appMetadata;
     }
@@ -2391,6 +2404,8 @@ public class JemoPluginManager {
 	                        moduleSet.add(jemoModule);
 	                        runWithModule(jemoModule, jemoServer.getWORK_EXECUTOR(), (m) -> {
 	                        	mod.MODULE_INFO_MAP.put(mod, new Module.ModuleInfo(metaData.getLog(), metaData.getName(), pluginId, pluginVersion));
+	                        	//we are going to add support for injecting Jemo server references to things like the plugin manager in modules.
+	                        	injectSystemReferencesToModule(mod);
 	                            //we need to get a list of the fields which have the @Inject annotation and the @ConfigProperty annotation.
 	                        	applyInjectedConfigurationToModule(mod, mpConfig);
 	                        	mod.construct(metaData.getLog(), metaData.getName(), pluginId, pluginVersion);
@@ -2425,8 +2440,17 @@ public class JemoPluginManager {
                     			MicroProfileHealthCheckWebModule.class.getSimpleName(), jarFileName, 
                     			getModuleLogger(pluginId, pluginVersion, MicroProfileHealthCheckWebModule.class));
                         JemoModule jemoModule = new JemoModule(new MicroProfileHealthCheckWebModule(), metaData, jemoClassLoaderHolder.value);
+                        injectSystemReferencesToModule(jemoModule.getModule());
                         LIVE_MODULE_MAP.getOrDefault(jarFileName, new HashSet<>()).add(jemoModule);
+                        moduleEndpointMap.put(jemoServer.getPluginManager().getModuleEndpoint(appMetadata, new MicroProfileHealthCheckWebModule()), jarFileName);
                     }
+                    ModuleMetaData metaData = new ModuleMetaData(pluginId, pluginVersion, 
+                			MicroProfileMetricsModule.class.getSimpleName(), jarFileName, 
+                			getModuleLogger(pluginId, pluginVersion, MicroProfileMetricsModule.class));
+                    JemoModule jemoModule = new JemoModule(new MicroProfileMetricsModule(), metaData, jemoClassLoaderHolder.value);
+                    injectSystemReferencesToModule(jemoModule.getModule());
+                    LIVE_MODULE_MAP.getOrDefault(jarFileName, new HashSet<>()).add(jemoModule);
+                    moduleEndpointMap.put(jemoServer.getPluginManager().getModuleEndpoint(appMetadata, new MicroProfileMetricsModule()), jarFileName);
                     System.gc();
                 }
             } catch (OutOfMemoryError memErr) {
@@ -2442,6 +2466,16 @@ public class JemoPluginManager {
                 }
             }
         }
+    }
+    
+    private void injectSystemReferencesToModule(final Module m) {
+    	Util.listFieldsWithAnnotations(m, Inject.class)
+			.stream()
+			.filter(f -> JemoPluginManager.class.isAssignableFrom(f.getType()))
+			.forEach(f -> Util.B(null, x -> {
+				f.setAccessible(true);
+				f.set(m, this);
+			}));
     }
 
     /**

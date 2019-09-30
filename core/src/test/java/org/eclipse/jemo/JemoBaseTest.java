@@ -136,6 +136,10 @@ public abstract class JemoBaseTest {
 		return (JemoPluginManager.PluginManagerModule) jemoServer.getPluginManager().loadModuleByClassName(0, JemoPluginManager.PluginManagerModule.class.getName()).getModule();
 	}
 	
+	protected String buildPluginFileName(String strPluginId, String strPluginName, String strPluginVersion) {
+        return strPluginId + "_" + strPluginName + "-" + strPluginVersion + ".jar";
+    }
+	
 	protected void uploadPlugin(int pluginId, double pluginVersion, String pluginName, InputStream pluginDataStream) throws Throwable {
 		JemoPluginManager.PluginManagerModule pluginManagerMod = getPluginManagerModule();
 		jemoServer.getPluginManager().runWithModuleContext(Void.class, x -> {
@@ -144,11 +148,26 @@ public abstract class JemoBaseTest {
 		});
 		//we should now wait at most 30 seconds for the application to appear in the registration list.
 		int ctr = 30;
+		//we also need to sense check this application against the one persisted because it may have changed.
+		JemoApplicationMetaData currentApp = CloudProvider.getInstance().getRuntime().getNoSQL(JemoPluginManager.MODULE_METADATA_TABLE, 
+				buildPluginFileName(String.valueOf(pluginId), pluginName, String.valueOf(pluginVersion)), JemoApplicationMetaData.class);
 		while(!jemoServer.getPluginManager().getApplicationList().stream()
-				.anyMatch(app -> PLUGIN_ID(app.getId()) == pluginId && pluginVersion == PLUGIN_VERSION(app.getId())) && ctr != 0) {
+				.anyMatch(app -> PLUGIN_ID(app.getId()) == pluginId && 
+								 pluginVersion == PLUGIN_VERSION(app.getId()) && 
+								 app.getBatches().size() == currentApp.getBatches().size() &&
+								 app.getEvents().size() == currentApp.getEvents().size() &&
+								 app.getEndpoints().size() == currentApp.getEndpoints().size() &&
+								 app.getHealthchecks().size() == currentApp.getHealthchecks().size()) && ctr != 0) {
 			Thread.sleep(1000);
 			ctr--;
 		}
+		printEndpointMap();
+	}
+	
+	protected void printEndpointMap() {
+		Map<String, String> moduleEndpointMap = Util.getFieldValue(jemoServer.getPluginManager(), "moduleEndpointMap", Map.class);
+		jemoServer.LOG("Module Endpoint Map: "+moduleEndpointMap.entrySet()
+			.stream().map(e -> "{"+e.getKey()+","+e.getValue()+"}").collect(Collectors.joining(",")), Level.INFO);
 	}
 	
 	protected void processBatch(int moduleId,double moduleVersion, String moduleClass) throws InterruptedException {
@@ -402,10 +421,10 @@ public abstract class JemoBaseTest {
 	}
 	
 	protected static class HttpResponseBuilder {
-		int status;
-		byte[] response;
-		String statusMessage;
-		Throwable error;
+		int status = 200;
+		byte[] response = new byte[] {};
+		String statusMessage = "";
+		Throwable error = null;
 		
 		public HttpResponseBuilder withStatus(int status) {
 			this.status = status;
@@ -459,6 +478,14 @@ public abstract class JemoBaseTest {
 		
 		public Throwable getError() {
 			return error;
+		}
+		
+		public String getResponseAsString() {
+			return new String(getResponse(),Util.UTF8_CHARSET);
+		}
+		
+		public <T extends Object> T getResponse(Class<T> responseType) throws IOException {
+			return Util.fromJSONString(responseType, getResponseAsString());
 		}
 	}
 	

@@ -70,6 +70,7 @@ public abstract class AbstractJemo {
     public static final String GLOBAL_QUEUE_NAME = "JEMO-GLOBAL-WORK-QUEUE";
     public static final String GLOBAL_TOPIC_NAME = "JEMO-GLOBAL-NOTIFICATION";
     public static final SimpleDateFormat logDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+    public static final int WORKER_THREADPOOL_MAXSIZE = 50;
 
     protected static final ObjectMapper mapper = Util.mapper;
 
@@ -110,7 +111,8 @@ public abstract class AbstractJemo {
     private final Logger SYS_LOGGER;
     private JemoPluginManager pluginManager = null;
     private JemoHTTPConnector httpServer = null;
-    private final ExecutorService WORK_EXECUTOR = Executors.newFixedThreadPool(50);
+    
+    private final ExecutorService WORK_EXECUTOR = Executors.newFixedThreadPool(WORKER_THREADPOOL_MAXSIZE);
     private final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(5); //we will increase this from 2 to 5 to accomodate for the fixed process monitoring tasks.
     private volatile long lastSchedulerRun = System.currentTimeMillis();
     private String HOSTNAME = null;

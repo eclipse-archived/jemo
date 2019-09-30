@@ -17,9 +17,11 @@ package org.eclipse.jemo.sys.microprofile;
 
 import static org.junit.Assert.*;
 
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 
 import org.eclipse.jemo.JemoGSMTest;
 import org.eclipse.jemo.api.FixedModule;
@@ -79,6 +81,31 @@ public class MicroProfileMetricsTest extends JemoGSMTest {
 		uploadPlugin(appId, appVersion, "MicroProfileMetrics", MetricsModule.class);
 		EXEC_LATCH = runFixedApplication(appId, appVersion, EXEC_LATCH);
 		response = callApplicationViaHTTP(appId, appVersion, "/metrics");
+		printEndpointMap();
 		assertEquals(200, response.getStatus());
+		
+		//our application does not have an application specific metrics however we would expect the base metrics to be available.
+		jemoServer.LOG(response.getResponseAsString(), Level.INFO);
+		Map<String,Map<String,Object>> allMetrics = response.getResponse(Map.class);
+		assertNotNull(allMetrics);
+		Map<String,Object> baseMetrics = allMetrics.get("base");
+		assertNotNull(baseMetrics);
+		assertNotNull(baseMetrics.get("memory.usedHeap"));
+		assertNotNull(baseMetrics.get("memory.committedHeap"));
+		assertNotNull(baseMetrics.get("memory.maxHeap"));
+		assertEquals(2, baseMetrics.keySet().stream().filter(k -> k.startsWith("gc.total")).count());
+		assertEquals(2, baseMetrics.keySet().stream().filter(k -> k.startsWith("gc.time")).count());
+		assertNotNull(baseMetrics.get("jvm.uptime"));
+		assertNotNull(baseMetrics.get("thread.count"));
+		assertNotNull(baseMetrics.get("thread.daemon.count"));
+		assertNotNull(baseMetrics.get("thread.max.count"));
+		assertNotNull(baseMetrics.get("threadpool.activeThreads;pool=WORK_EXECUTOR"));
+		assertNotNull(baseMetrics.get("threadpool.size;pool=WORK_EXECUTOR"));
+		assertNotNull(baseMetrics.get("classloader.loadedClasses.count"));
+		assertNotNull(baseMetrics.get("classloader.loadedClasses.total"));
+		assertNotNull(baseMetrics.get("classloader.unloadedClasses.total"));
+		assertNotNull(baseMetrics.get("cpu.availableProcessors"));
+		assertNotNull(baseMetrics.get("cpu.systemLoadAverage"));
+		assertNotNull(baseMetrics.get("cpu.processCpuLoad"));
 	}
 }
