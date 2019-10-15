@@ -17,3 +17,10 @@ UUID_*
 /.project
 /.temp-Jemo-classpath-arg-1569239130814.txt
 /.temp-org.eclipse.jemo-classpath-arg-1569511630014.txt
+
+/org.eclipse.core.resources.prefs
+/org.eclipse.jdt.apt.core.prefs
+/org.eclipse.jdt.core.prefs
+/org.eclipse.m2e.core.prefs
+
+/settings.json
