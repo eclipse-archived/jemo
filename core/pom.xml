@@ -22,7 +22,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.eclipse.jemo</groupId>
     <artifactId>jemo</artifactId>
-    <version>1.0.7-a</version>
+    <version>1.1.0-a</version>
     <packaging>jar</packaging>
 
     <properties>
