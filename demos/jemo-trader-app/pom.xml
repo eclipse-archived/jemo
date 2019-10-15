@@ -81,7 +81,7 @@
             <plugin>
                 <groupId>org.eclipse.jemo</groupId>
                 <artifactId>eclipse-jemo-maven-plugin</artifactId>
-                <version>1.1</version>
+                <version>1.2</version>
                 <executions>
                     <execution>
                         <phase>deploy</phase>
