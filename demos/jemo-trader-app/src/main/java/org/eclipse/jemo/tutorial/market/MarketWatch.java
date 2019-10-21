@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static java.util.logging.Level.INFO;
 
 /**
- * Declares a fixed process that logs the trasnactions processed by this instance the last 30 seconds.
+ * Declares a fixed process that logs the transactions processed by this instance the last 30 seconds.
  *
  * @author Yannis Theocharis
  */
