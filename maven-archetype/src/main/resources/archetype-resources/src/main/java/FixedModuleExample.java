@@ -3,7 +3,7 @@ package ${package};
 import org.eclipse.jemo.api.FixedModule;
 import org.eclipse.jemo.api.ModuleLimit;
 
-// For more info on how to implement this class plese read https://www.eclipse.org/jemo/docs.php
+// For more info on how to implement this class please read https://www.eclipse.org/jemo/docs.php
 // An example can be found in https://github.com/eclipse/jemo/blob/master/demos/jemo-trader-app/src/main/java/org/eclipse/jemo/tutorial/market/MarketWatch.java
 public class FixedModuleExample implements FixedModule {
 
