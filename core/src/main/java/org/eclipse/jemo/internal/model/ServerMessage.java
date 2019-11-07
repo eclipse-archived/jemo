@@ -16,7 +16,6 @@
 ********************************************************************************/
 package org.eclipse.jemo.internal.model;
 
-import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import org.eclipse.jemo.Jemo;
 import static org.eclipse.jemo.Jemo.toJSONString;
 
@@ -181,7 +180,7 @@ public class ServerMessage {
 				} else {
 					Jemo.log("[MESSAGE SENT]{"+queueId+"} - MessageID: "+CloudProvider.getInstance().getRuntime().sendMessage(queueId, Jemo.toJSONString(message)),Level.FINE);
 				}
-			}catch(QueueDoesNotExistException qNfEx) {
+			}catch(Exception qNfEx) {
 				Jemo.log(Level.WARNING, "[MESSAGE FAILED]{%s} - Message: %s",queueId, Jemo.toJSONString(message));
 			}
 		}

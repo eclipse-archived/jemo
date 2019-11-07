@@ -23,10 +23,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1LoadBalancerIngress;
-import io.kubernetes.client.models.V1Service;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -426,24 +422,6 @@ public class Util {
 
     public static String readParameterFromJvmOrEnv(String name) {
         return readParameterFromJvmOrEnv(name, null);
-    }
-
-    public static String getLoadBalancerUrl(CoreV1Api coreV1Api) throws ApiException {
-        long start = System.currentTimeMillis();
-        long duration;
-        V1Service createdService;
-        do {
-            createdService = coreV1Api.readNamespacedService("jemo", "default", "true", null, null);
-            duration = (System.currentTimeMillis() - start) / 60_000;
-        } while (duration < 3 && isLoadBalancerUrlCreated(createdService));
-
-        final V1LoadBalancerIngress loadBalancerIngress = createdService.getStatus().getLoadBalancer().getIngress().get(0);
-        return "http://" + (loadBalancerIngress.getIp() == null ? loadBalancerIngress.getHostname() : loadBalancerIngress.getIp());
-    }
-
-    private static boolean isLoadBalancerUrlCreated(V1Service createdService) {
-        final List<V1LoadBalancerIngress> ingresses = createdService.getStatus().getLoadBalancer().getIngress();
-        return ingresses == null || (ingresses.get(0).getHostname() == null && ingresses.get(0).getIp() == null);
     }
 
     private static String[] waitAndMonitorProcess(StringBuilder builder, Process process) throws IOException {

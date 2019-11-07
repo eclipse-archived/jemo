@@ -1820,7 +1820,7 @@ public class JemoPluginManager {
 
         private void writeAPIJar(OutputStream out) throws Throwable {
             Util.createJar(out, Module.class, ModuleInfo.class, WebServiceModule.class, EventModule.class, BatchModule.class, FixedModule.class,
-                    JemoMessage.class, JemoError.class, CloudRuntime.class,
+                    JemoMessage.class, JemoError.class, CloudRuntime.class, CloudRuntimeProvider.class,
                     CloudBlob.class, QueueDoesNotExistException.class, CloudLogEvent.class, CloudQueueProcessor.class,
                     SystemDBObject.class, ModuleConfiguration.class, JemoClassLoader.class, CloudProvider.class,
                     SystemDB.class, Util.class, JemoUser.class, JemoGroup.class, JemoAuthentication.class,

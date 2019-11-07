@@ -1,4 +1,4 @@
-package org.eclipse.jemo.internal.model;
+package org.eclipse.jemo.gcp;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
@@ -18,6 +18,7 @@ import com.google.cloud.storage.Storage.BucketListOption;
 import io.kubernetes.client.ApiException;
 import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.Jemo;
+import org.eclipse.jemo.internal.model.*;
 import org.eclipse.jemo.sys.ClusterParams;
 import org.eclipse.jemo.sys.ClusterParams.ClusterParam;
 import org.eclipse.jemo.sys.JemoRuntimeSetup;
@@ -64,9 +65,9 @@ import static org.eclipse.jemo.sys.internal.Util.*;
  *
  * @author Yannis Theocharis
  */
-public class GCPRuntime implements CloudRuntime {
+public class GcpRuntime implements CloudRuntime {
 
-    private static final Logger LOG = Logger.getLogger(GCPRuntime.class.getSimpleName());
+    private static final Logger LOG = Logger.getLogger(GcpRuntime.class.getSimpleName());
     public static final String GCP_PROJECT_ID = "project_id";
     public static final String GCP_SERVICE_ACCOUNT_ID = "service_account_id";
     private static final String PROP_PROJECT_ID = "eclipse.jemo.gcp.project_id";
@@ -96,7 +97,7 @@ public class GCPRuntime implements CloudRuntime {
     private Logging logging;
     private final AtomicBoolean LOGGING_INITIALIZED = new AtomicBoolean(false);
 
-    public GCPRuntime() {
+    public GcpRuntime() {
         Properties properties = readPropertiesFile();
         PROJECT_ID = readProperty(PROP_PROJECT_ID, properties, ServiceOptions.getDefaultProjectId());
         REGION = readProperty(GCP_REGION_PROP, properties, null);

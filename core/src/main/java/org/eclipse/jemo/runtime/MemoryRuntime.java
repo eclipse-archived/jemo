@@ -44,7 +44,7 @@ import static java.util.Arrays.asList;
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
 public class MemoryRuntime implements CloudRuntime {
-    private static final Logger LOG = Logger.getLogger(AmazonAWSRuntime.class.getSimpleName());
+    private static final Logger LOG = Logger.getLogger(MemoryRuntime.class.getSimpleName());
     public static final String USER = "csp_memory_user";
     public static final String PASSWORD = "csp_memory_password";
 

@@ -33,18 +33,14 @@
 package org.eclipse.jemo.internal.model;
 
 import org.eclipse.jemo.runtime.MemoryRuntime;
-import org.eclipse.jemo.sys.JemoClassLoader;
 import org.eclipse.jemo.sys.internal.Util;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 import static org.eclipse.jemo.api.JemoParameter.CLOUD;
-import static org.eclipse.jemo.internal.model.GCPRuntime.GCP_PROJECT_ID;
-import static org.eclipse.jemo.internal.model.GCPRuntime.GCP_SERVICE_ACCOUNT_ID;
 import static org.eclipse.jemo.sys.internal.Util.readParameterFromJvmOrEnv;
 import static java.util.Arrays.asList;
 
@@ -56,33 +52,29 @@ import static java.util.Arrays.asList;
  */
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
 public enum CloudProvider {
-    AWS("org.eclipse.jemo.internal.model.AmazonAWSRuntime",
-            null,
-            "AWS",
+    AWS("AWS",
             "https://aws.amazon.com/",
             "Amazon Web Services",
-            asList(AmazonAWSRuntime.AWS_ACCESS_KEY_ID, AmazonAWSRuntime.AWS_SECRET_ACCESS_KEY)
+            "org.eclipse.jemo.aws.AwsCloudRuntimeProvider",
+            asList("aws_access_key_id", "aws_secret_access_key")
     ),
 
-    AZURE("org.eclipse.jemo.runtime.azure.MicrosoftAzureRuntime",
-            "runtime-jars/azure-runtime.jar",
-            "AZURE",
+    AZURE("AZURE",
             "https://azure.microsoft.com/",
             "Microsoft Azure",
+            "org.eclipse.jemo.runtime.azure.AzureCloudRuntimeProvider",
             asList("tenant_id", "client_id", "client_secret")),
 
-    GCP("org.eclipse.jemo.internal.model.GCPRuntime",
-            null,
-            "GCP",
+    GCP("GCP",
             "https://cloud.google.com/",
             "Google Cloud",
-            asList(GCP_PROJECT_ID, GCP_SERVICE_ACCOUNT_ID)),
+            "org.eclipse.jemo.gcp.GcpCloudRuntimeProvider",
+            asList("project_id", "service_account_id")),
 
-    MEMORY("org.eclipse.jemo.runtime.MemoryRuntime",
-            null,
-            "MEMORY",
+    MEMORY("MEMORY",
             null,
             "A main memory CSP mock",
+            "",
             asList(MemoryRuntime.USER, MemoryRuntime.PASSWORD));
 
     private static CloudRuntime defaultRuntime = null;
@@ -90,12 +82,6 @@ public enum CloudProvider {
 
     @JsonIgnore
     CloudRuntime runtime = null;
-
-    @JsonIgnore
-    String runtimeClass;
-
-    @JsonIgnore
-    String implementation;
 
     @JsonProperty
     private final String name;
@@ -106,15 +92,16 @@ public enum CloudProvider {
     @JsonProperty
     private final String description;
 
+    private final String providerFQClassName;
+
     @JsonProperty
     private final List<String> requiredCredentials;
 
-    CloudProvider(String runtimeClass, String implementation, String name, String url, String description, List<String> requiredCredentials) {
-        this.runtimeClass = runtimeClass;
-        this.implementation = implementation;
+    CloudProvider(String name, String url, String description, String providerFQClassName, List<String> requiredCredentials) {
         this.name = name;
         this.url = url;
         this.description = description;
+        this.providerFQClassName = providerFQClassName;
         this.requiredCredentials = requiredCredentials;
     }
 
@@ -139,6 +126,7 @@ public enum CloudProvider {
             }
         }
 
+        // TODO: This needs to change the identification of the CSP (by looking for credential files) needs to happen here, before the runtime object is created.
         for (CloudProvider cloudProvider : CloudProvider.values()) {
             if (cloudProvider.getRuntime().validatePermissions().isSuccess()) {
                 return CLOUD_PROVIDER = cloudProvider;
@@ -168,19 +156,8 @@ public enum CloudProvider {
     }
 
     private synchronized void initializeRuntime() {
-        Util.B(null, x -> {
-            if (implementation != null) {
-                //we can avoid initializing this if we need to
-                ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-                Util.stream(byteOut, getClass().getResourceAsStream("/" + implementation));
-                JemoClassLoader cl = new JemoClassLoader(runtimeClass, byteOut.toByteArray());
-                Class cloudRuntime = cl.loadClass(runtimeClass);
-                runtime = CloudRuntime.class.cast(cloudRuntime.newInstance());
-            } else {
-                Class cloudRuntime = Class.forName(runtimeClass);
-                runtime = CloudRuntime.class.cast(cloudRuntime.newInstance());
-            }
-        });
+        CloudRuntimeProvider provider = CloudRuntimeImplLoader.provider(this.providerFQClassName);
+        runtime = provider.create();
     }
 
     public CloudRuntime getRuntime() {

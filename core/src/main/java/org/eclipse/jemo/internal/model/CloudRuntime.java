@@ -21,7 +21,6 @@ import org.eclipse.jemo.sys.ClusterParams;
 import org.eclipse.jemo.sys.internal.TerraformJob;
 import org.eclipse.jemo.sys.internal.TerraformJob.TerraformResult;
 import org.eclipse.jemo.sys.internal.Util;
-import io.kubernetes.client.ApiException;
 import org.eclipse.jemo.sys.JemoRuntimeSetup;
 
 import java.io.ByteArrayInputStream;
@@ -268,9 +267,8 @@ public interface CloudRuntime {
      * @param builder     a string builder object used by the UI to monitor the progress of terraform commands
      * @return the resulting terraform job
      * @throws IOException
-     * @throws ApiException
      */
-    JemoRuntimeSetup.ClusterCreationResponse createCluster(JemoRuntimeSetup.SetupParams setupParams, StringBuilder builder) throws IOException, ApiException;
+    JemoRuntimeSetup.ClusterCreationResponse createCluster(JemoRuntimeSetup.SetupParams setupParams, StringBuilder builder) throws IOException;
 
     /**
      * Generates the terraform templates needed for the cluster creation and the kubernetes yaml files
