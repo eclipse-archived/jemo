@@ -1,6 +1,7 @@
 package org.eclipse.jemo.internal.model;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.*;
@@ -47,7 +48,14 @@ public class CloudRuntimeImplLoader {
         if (provider.isPresent()) {
             return provider.get();
         } else {
-            // TODO: Download the jar from some predefined directory
+            String url = "";
+            String fileName = "";
+            try {
+                InputStream in = new URL(url).openStream();
+                Files.copy(in, Paths.get(fileName), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                // TODO: log exception
+            }
             return null;
         }
     }

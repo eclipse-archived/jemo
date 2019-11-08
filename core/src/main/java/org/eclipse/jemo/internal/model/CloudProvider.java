@@ -156,8 +156,12 @@ public enum CloudProvider {
     }
 
     private synchronized void initializeRuntime() {
-        CloudRuntimeProvider provider = CloudRuntimeImplLoader.provider(this.providerFQClassName);
-        runtime = provider.create();
+        if (this == MEMORY) {
+            runtime = new MemoryRuntime();
+        } else {
+            CloudRuntimeProvider provider = CloudRuntimeImplLoader.provider(this.providerFQClassName);
+            runtime = provider.create();
+        }
     }
 
     public CloudRuntime getRuntime() {

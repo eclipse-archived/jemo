@@ -22,6 +22,7 @@ public class DeploymentHistoryModule implements BatchModule {
     @Override
     public void processBatch(String location, boolean isCloudLocation) throws Throwable {
         // Delete from the deployment history all deployment records that are 6 or more months old.
+        SystemDB.createTable(DEPLOYMENT_HISTORY_TABLE);
         final DeployResource[] recordsToDelete = SystemDB.list(DEPLOYMENT_HISTORY_TABLE, DeployResource.class).stream()
                 .filter(deployResource -> {
                     final LocalDate deploymentDate = LocalDate.parse(deployResource.getTimestamp().split("T")[0]);
