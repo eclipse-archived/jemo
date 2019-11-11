@@ -126,7 +126,6 @@ public enum CloudProvider {
             }
         }
 
-        // TODO: This needs to change the identification of the CSP (by looking for credential files) needs to happen here, before the runtime object is created.
         for (CloudProvider cloudProvider : CloudProvider.values()) {
             if (cloudProvider.getRuntime().validatePermissions().isSuccess()) {
                 return CLOUD_PROVIDER = cloudProvider;
@@ -159,7 +158,7 @@ public enum CloudProvider {
         if (this == MEMORY) {
             runtime = new MemoryRuntime();
         } else {
-            CloudRuntimeProvider provider = CloudRuntimeImplLoader.provider(this.providerFQClassName);
+            CloudRuntimeProvider provider = CloudRuntimeImplLoader.provider(this);
             runtime = provider.create();
         }
     }
@@ -194,4 +193,11 @@ public enum CloudProvider {
         return runtime == null ? null : runtime.getInstallProperties();
     }
 
+    public String getProviderFQClassName() {
+        return providerFQClassName;
+    }
+
+    public String getName() {
+        return name;
+    }
 }
