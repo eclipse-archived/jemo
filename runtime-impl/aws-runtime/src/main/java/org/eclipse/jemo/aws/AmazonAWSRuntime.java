@@ -1718,7 +1718,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
         return loadBalancerUrl;
     }
 
-    public String getLoadBalancerUrl(CoreV1Api coreV1Api) throws ApiException {
+    private String getLoadBalancerUrl(CoreV1Api coreV1Api) throws ApiException {
         long start = System.currentTimeMillis();
         long duration;
         V1Service createdService;

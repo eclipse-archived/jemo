@@ -16,6 +16,8 @@
  ********************************************************************************/
 package org.eclipse.jemo.runtime.azure;
 
+import io.kubernetes.client.models.V1LoadBalancerIngress;
+import io.kubernetes.client.models.V1Service;
 import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.Jemo;
 import org.eclipse.jemo.internal.model.*;
@@ -1655,7 +1657,7 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
     }
 
     @Override
-    public ClusterCreationResponse createCluster(SetupParams setupParams, StringBuilder builder) throws IOException, ApiException {
+    public ClusterCreationResponse createCluster(SetupParams setupParams, StringBuilder builder) throws IOException {
         setupParams.parameters().put("terraform_user_client_id", AZURE_CREDENTIALS().clientId);
         setupParams.parameters().put("terraform_user_client_secret", AZURE_CREDENTIALS().clientSecret);
         final Path terraformDirPath = createClusterTerraformTemplates(setupParams);
@@ -1827,4 +1829,25 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
         return isInstalled ? null : "Please install 'az'. Instructions on https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest";
     }
 
+    private String getLoadBalancerUrl(CoreV1Api coreV1Api) {
+        long start = System.currentTimeMillis();
+        long duration;
+        V1Service createdService;
+        do {
+            try {
+                createdService = coreV1Api.readNamespacedService("jemo", "default", "true", null, null);
+            } catch (ApiException e) {
+                throw new RuntimeException(e);
+            }
+            duration = (System.currentTimeMillis() - start) / 60_000;
+        } while (duration < 3 && isLoadBalancerUrlCreated(createdService));
+
+        final V1LoadBalancerIngress loadBalancerIngress = createdService.getStatus().getLoadBalancer().getIngress().get(0);
+        return "http://" + (loadBalancerIngress.getIp() == null ? loadBalancerIngress.getHostname() : loadBalancerIngress.getIp());
+    }
+
+    private boolean isLoadBalancerUrlCreated(V1Service createdService) {
+        final List<V1LoadBalancerIngress> ingresses = createdService.getStatus().getLoadBalancer().getIngress();
+        return ingresses == null || (ingresses.get(0).getHostname() == null && ingresses.get(0).getIp() == null);
+    }
 }

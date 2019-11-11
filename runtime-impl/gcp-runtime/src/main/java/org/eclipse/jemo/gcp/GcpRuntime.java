@@ -15,7 +15,6 @@ import com.google.cloud.storage.*;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Storage.BlobListOption;
 import com.google.cloud.storage.Storage.BucketListOption;
-import io.kubernetes.client.ApiException;
 import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.Jemo;
 import org.eclipse.jemo.internal.model.*;
@@ -838,7 +837,7 @@ public class GcpRuntime implements CloudRuntime {
     }
 
     @Override
-    public JemoRuntimeSetup.ClusterCreationResponse createCluster(SetupParams setupParams, StringBuilder builder) throws IOException, ApiException {
+    public JemoRuntimeSetup.ClusterCreationResponse createCluster(SetupParams setupParams, StringBuilder builder) throws IOException {
         final Path terraformDirPath = createClusterTerraformTemplates(setupParams);
         final TerraformJob terraformJob = new TerraformJob(terraformDirPath.toString(), terraformDirPath.toString() + "/" + TFVARS_FILE_NAME).run(builder);
         final Path source = Paths.get("terraform.tfstate");
