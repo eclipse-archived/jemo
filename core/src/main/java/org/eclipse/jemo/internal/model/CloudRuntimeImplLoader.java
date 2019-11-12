@@ -1,13 +1,12 @@
 package org.eclipse.jemo.internal.model;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import org.apache.commons.io.FileUtils;
+
+import java.io.*;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.*;
 import java.util.*;
-import java.util.logging.Level;
 
 import static org.eclipse.jemo.internal.model.CloudProvider.MEMORY;
 
@@ -16,6 +15,7 @@ import static org.eclipse.jemo.internal.model.CloudProvider.MEMORY;
  */
 public class CloudRuntimeImplLoader {
     private static final String RUNTIME_JARS_FOLDER = "runtime-jars/";
+    private static Properties RUNTIME_IMPL_PROPS;
 
     public static List<CloudRuntimeProvider> providers() {
         Collection<URL> urlList = new ArrayList<>();
@@ -73,30 +73,27 @@ public class CloudRuntimeImplLoader {
     }
 
     private static void loadRuntimeImplFromWeb(CloudProvider cloudProvider) {
-        if (props == null) {
+        if (RUNTIME_IMPL_PROPS == null) {
             loadProperties();
         }
 
         String name = cloudProvider.getName().toLowerCase();
-        String url = props.getProperty("jemo.runtime." + name + ".url");
+        String url = RUNTIME_IMPL_PROPS.getProperty("jemo.runtime." + name + ".url");
         String fileName = RUNTIME_JARS_FOLDER + name + ".jar";
+
         try {
-            InputStream in = new URL(url).openStream();
-            Files.copy(in, Paths.get(fileName), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to download the runtime implementation for " + cloudProvider.getName() +
-                    " from: " + url + ". Please review the runtime_impl.properties");
+            FileUtils.copyURLToFile(new URL(url), new File(fileName), 120_000, 120_000);
+        }  catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private static Properties props;
-
     private static void loadProperties() {
-        props = new Properties();
+        RUNTIME_IMPL_PROPS = new Properties();
         String propFileName = "runtime_impl.properties";
 
         try (InputStream inputStream = CloudRuntimeImplLoader.class.getClassLoader().getResourceAsStream(propFileName)) {
-            props.load(inputStream);
+            RUNTIME_IMPL_PROPS.load(inputStream);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
