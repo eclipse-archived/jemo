@@ -69,11 +69,13 @@ public class GcpRuntime implements CloudRuntime {
     private static final Logger LOG = Logger.getLogger(GcpRuntime.class.getSimpleName());
     public static final String GCP_PROJECT_ID = "project_id";
     public static final String GCP_SERVICE_ACCOUNT_ID = "service_account_id";
-    private static final String PROP_PROJECT_ID = "eclipse.jemo.gcp.project_id";
+    static final String PROP_PROJECT_ID = "eclipse.jemo.gcp.project_id";
+    static final String PROP_USER = "eclipse.jemo.gcp.user";
     private static final String QUEUES_METADATA = "queues_metadata";
     private static final String TABLES_METADATA = "tables_metadata";
     private static final String MODULE_CONFIGURATION_TABLE = "eclipse_jemo_module_configuration";
     private static final String ECLIPSE_JEMO_INSTANCES_TABLE = "eclipse_jemo_instances";
+    private static String GCP_USER;
     private static String CLOUD_STORAGE_PLUGIN_BUCKET;
 
     private static final String APPLICATION_NAME = "Jemo";
@@ -98,6 +100,7 @@ public class GcpRuntime implements CloudRuntime {
 
     public GcpRuntime() {
         Properties properties = readPropertiesFile();
+        GCP_USER = System.getProperty(PROP_USER) != null ? System.getProperty(PROP_USER) : "jemo-user";
         PROJECT_ID = readProperty(PROP_PROJECT_ID, properties, ServiceOptions.getDefaultProjectId());
         REGION = readProperty(GCP_REGION_PROP, properties, null);
     }
@@ -116,7 +119,7 @@ public class GcpRuntime implements CloudRuntime {
 
     private GoogleCredentials credentials() {
         try {
-            return GoogleCredentials.fromStream(new FileInputStream(jsonKeyFilePath("jemo-user", PROJECT_ID).toFile()))
+            return GoogleCredentials.fromStream(new FileInputStream(jsonKeyFilePath(GCP_USER, PROJECT_ID).toFile()))
                     .createScoped(singleton(IamScopes.CLOUD_PLATFORM));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -125,7 +128,7 @@ public class GcpRuntime implements CloudRuntime {
 
     private GoogleCredential credential() {
         try {
-            return GoogleCredential.fromStream(new FileInputStream(jsonKeyFilePath("jemo-user", PROJECT_ID).toFile()))
+            return GoogleCredential.fromStream(new FileInputStream(jsonKeyFilePath(GCP_USER, PROJECT_ID).toFile()))
                     .createScoped(singleton(IamScopes.CLOUD_PLATFORM));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -150,8 +153,10 @@ public class GcpRuntime implements CloudRuntime {
     public void start(AbstractJemo jemoServer) {
         CLOUD_STORAGE_PLUGIN_BUCKET = "jemopluginlib-" + PROJECT_ID;
         LOG.setUseParentHandlers(false);
-        LOG.addHandler(jemoServer.getConsoleHandler());
-        LOG.setLevel(jemoServer.getConsoleHandler().getLevel());
+        if (jemoServer !=null ) {
+            LOG.addHandler(jemoServer.getConsoleHandler());
+            LOG.setLevel(jemoServer.getConsoleHandler().getLevel());
+        }
     }
 
     @Override
@@ -726,7 +731,7 @@ public class GcpRuntime implements CloudRuntime {
         // Do nothing.
     }
 
-    private Path jsonKeyFilePath(String userAccountId, String projectId) {
+    Path jsonKeyFilePath(String userAccountId, String projectId) {
         if (System.getenv("GOOGLE_APPLICATION_CREDENTIALS") != null) {
             return Paths.get(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
         } else {
@@ -886,7 +891,7 @@ public class GcpRuntime implements CloudRuntime {
         final String sourceDir = getTerraformClusterDir() + "/kubernetes/";
         copy(sourceDir, kubernetesDirPath, "jemo-svc.yaml", getClass());
 
-        final String jemoKeyFileContent = Files.lines(jsonKeyFilePath("jemo-user", PROJECT_ID)).collect(Collectors.joining("\n"));
+        final String jemoKeyFileContent = Files.lines(jsonKeyFilePath(GCP_USER, PROJECT_ID)).collect(Collectors.joining("\n"));
         final String encodedJemoKeyFileContent = Base64.getEncoder().encodeToString(jemoKeyFileContent.getBytes(UTF8_CHARSET));
         applyTemplate(sourceDir, kubernetesDirPath, "credentials.yaml", getClass(), x -> x.replaceAll("_JEMO_USER_CRED_", encodedJemoKeyFileContent));
 

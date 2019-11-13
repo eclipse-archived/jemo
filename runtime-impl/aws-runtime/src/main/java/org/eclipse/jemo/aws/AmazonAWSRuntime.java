@@ -394,8 +394,10 @@ public class AmazonAWSRuntime implements CloudRuntime {
 
         //lets initialise the logger for this runtime
         LOG.setUseParentHandlers(false);
-        LOG.addHandler(jemoServer.getConsoleHandler());
-        LOG.setLevel(jemoServer.getConsoleHandler().getLevel());
+        if (jemoServer != null) {
+            LOG.addHandler(jemoServer.getConsoleHandler());
+            LOG.setLevel(jemoServer.getConsoleHandler().getLevel());
+        }
         LOG.info(String.format("Discovered AWS Account Id as %s - initialized in %d (ms)", AWS_ACCOUNT_ID, System.currentTimeMillis() - start));
         isInitialized = true;
     }

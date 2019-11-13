@@ -132,10 +132,13 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
     private static final String PROP_RESOURCEGROUP = "ECLIPSE_JEMO_AZURE_RESOURCE_GROUP";
     private static final String PROP_EVENTHUB = "ECLIPSE_JEMO_AZURE_EVENTHUB";
     private static final String PROP_DB = "ECLIPSE_JEMO_AZURE_DB";
-    private static final String PROP_STORAGE = "ECLIPSE_JEMO_AZURE_STORAGE";
+    static final String PROP_STORAGE = "ECLIPSE_JEMO_AZURE_STORAGE";
     private static final String PROP_LOG_WORKSPACE = "ECLIPSE_JEMO_AZURE_LOG_WORKSPACE";
     private static final String PROP_KEYVAULT = "ECLIPSE_JEMO_AZURE_KEYVAULT";
     private static final String PROP_MSG_MODEL = "ECLIPSE_JEMO_AZURE_MSG_MODEL";
+    static final String TENANT_ID = "eclipse.jemo.azure.tenantid";
+    static final String CLIENT_ID = "eclipse.jemo.azure.clientid";
+    static final String CLIENT_SECRET = "eclipse.jemo.azure.clientsecret";
 
     private static final Set<String> REQUIRED_ACTIONS = new HashSet<>(asList(
             "Microsoft.Resources/subscriptions/read",
@@ -209,14 +212,14 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
 
     private static final AzureCredentials AZURE_CREDENTIALS() {
         if (AZURE_CREDENTIALS == null) {
-            if (System.getProperty("eclipse.jemo.azure.tenantid") != null
-                    && System.getProperty("eclipse.jemo.azure.clientid") != null
-                    && System.getProperty("eclipse.jemo.azure.clientsecret") != null) {
+            if (System.getProperty(TENANT_ID) != null
+                    && System.getProperty(CLIENT_ID) != null
+                    && System.getProperty(CLIENT_SECRET) != null) {
                 Jemo.log(Level.FINE, "[AZURE][AZURE_CREDENTIALS] Credentials are found from jvm properties");
                 AZURE_CREDENTIALS = new AzureCredentials(
-                        System.getProperty("eclipse.jemo.azure.tenantid"),
-                        System.getProperty("eclipse.jemo.azure.clientid"),
-                        System.getProperty("eclipse.jemo.azure.clientsecret"));
+                        System.getProperty(TENANT_ID),
+                        System.getProperty(CLIENT_ID),
+                        System.getProperty(CLIENT_SECRET));
             } else {
                 Jemo.log(Level.FINE, "[AZURE][AZURE_CREDENTIALS] Checking if the credentials file exists.");
                 AZURE_CREDENTIALS = readCredentialsFromFile();

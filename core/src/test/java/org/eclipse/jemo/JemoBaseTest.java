@@ -16,6 +16,7 @@
 ********************************************************************************/
 package org.eclipse.jemo;
 
+import junit.framework.TestCase;
 import org.eclipse.jemo.api.KeyValue;
 import org.eclipse.jemo.api.Module;
 import org.eclipse.jemo.internal.model.*;
@@ -38,7 +39,7 @@ import static org.eclipse.jemo.api.JemoParameter.*;
  *
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
-public abstract class JemoBaseTest {
+public abstract class JemoBaseTest extends TestCase {
 
 	public static class TestJemoServer extends AbstractJemo {
 		public TestJemoServer(final String UUID_FILE_NAME, final String location, final int httpPort, final String pluginWhitelist) {
@@ -56,8 +57,6 @@ public abstract class JemoBaseTest {
 	protected TestJemoServer jemoServer = null;
 	
 	protected JemoBaseTest(boolean serverInstance) {
-		System.setProperty("ECLIPSE_JEMO_AWS_REGION","eu-west-1");
-		System.setProperty("ECLIPSE_JEMO_GCP_REGION","europe-west2-a");
 		System.setProperty(LOG_LOCAL.label(),"true");
 		System.setProperty(CLOUD.label(),"MEMORY");
 		System.setProperty("eclipse.jemo.azure.msg.model","QUEUE");

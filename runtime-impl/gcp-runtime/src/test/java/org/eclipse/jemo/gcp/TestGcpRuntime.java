@@ -14,49 +14,60 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
-package org.eclipse.jemo;
+package org.eclipse.jemo.gcp;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import junit.framework.TestCase;
+import org.eclipse.jemo.Jemo;
 import org.eclipse.jemo.internal.model.*;
-import org.eclipse.jemo.internal.model.JemoMessage;
-import org.eclipse.jemo.runtime.MemoryRuntime;
 import org.eclipse.jemo.sys.auth.JemoUser;
 import org.eclipse.jemo.sys.internal.Util;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import org.junit.Assert;
-
-import static org.junit.Assert.*;
-
-import org.junit.Test;
+import static org.eclipse.jemo.api.JemoParameter.*;
+import static org.eclipse.jemo.gcp.GcpRuntime.PROP_PROJECT_ID;
+import static org.eclipse.jemo.gcp.GcpRuntime.PROP_USER;
+import static org.junit.Assert.assertArrayEquals;
 
 /**
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
-public class TestCloudRuntime extends JemoBaseTest {
+public class TestGcpRuntime extends TestCase {
 
-    private MemoryRuntime runtime;
-
-    public TestCloudRuntime() throws Throwable {
-        super();
-    }
-
+    private GcpRuntime runtime;
 
     @Override
     protected void setUp() throws Exception {
-        runtime = new MemoryRuntime();
-        runtime.start(jemoServer);
+        String region = System.getProperty("ECLIPSE_JEMO_GCP_REGION") != null ? System.getProperty("ECLIPSE_JEMO_GCP_REGION") : "europe-west2-a";
+        System.setProperty("ECLIPSE_JEMO_GCP_REGION", region);
+        System.setProperty(LOG_LOCAL.label(), "true");
+        System.setProperty("eclipse.jemo.azure.msg.model", "QUEUE");
+        System.setProperty(LOG_LEVEL.label(), "INFO");
+        System.setProperty(CLOUD.label(), "GCP");
+
+        String user = "terraform-user";
+        System.setProperty(PROP_USER, user);
+        String projectId = "api-project-685953918458";
+        System.setProperty(PROP_PROJECT_ID, projectId);
+
+        runtime = new GcpRuntime();
+        runtime.start(null);
+        Path path = runtime.jsonKeyFilePath(user, projectId);
+        if (!Files.exists(path)) {
+            throw new RuntimeException("No GCP credentials found under " + path + ". Please follow the Jemo setup wizard to have this created.");
+        }
     }
 
     /**
@@ -240,7 +251,7 @@ public class TestCloudRuntime extends JemoBaseTest {
     @Test
     public void testUploadModule() throws Throwable {
         ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-        Util.createJar(byteOut, TestCloudRuntime.class);
+        Util.createJar(byteOut, TestGcpRuntime.class);
         final byte[] jarBytes = byteOut.toByteArray();
 
         runtime.uploadModule("60000_Test-1-1.0.jar", jarBytes);

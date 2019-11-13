@@ -32,15 +32,7 @@ import org.eclipse.jemo.HttpServletResponseAdapter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -174,10 +166,10 @@ public class TestPluginManager extends JemoGSMTest {
 	@Test
 	public void test_listApplications() {
 		//we need to set a mock cloud runtime up first
-		List<JemoApplicationMetaData> origKnownApplications = new ArrayList<>();
-		List<JemoApplicationMetaData> knownApplications = Util.getFieldValue(jemoServer.getPluginManager(),"KNOWN_APPLICATIONS",List.class);
+		Map<String, JemoApplicationMetaData> origKnownApplications = new HashMap<>();
+		Map<String, JemoApplicationMetaData> knownApplications = Util.getFieldValue(jemoServer.getPluginManager(),"KNOWN_APPLICATIONS",Map.class);
 		try {
-			origKnownApplications.addAll(knownApplications);
+			origKnownApplications.putAll(knownApplications);
 			knownApplications.clear();
 			CloudProvider.defineCustomeRuntime(new MemoryRuntime() {
 				List<SystemDBObject> objList = new ArrayList<>();
@@ -209,7 +201,7 @@ public class TestPluginManager extends JemoGSMTest {
 			});
 			jemoServer.getPluginManager().listApplications();
 			assertEquals(1,knownApplications.size());
-			JemoApplicationMetaData resultMetadata = knownApplications.iterator().next();
+			JemoApplicationMetaData resultMetadata = knownApplications.values().iterator().next();
 			assertNotNull(resultMetadata);
 			JemoApplicationMetaData targetMetadata = new JemoApplicationMetaData();
 			targetMetadata.setId("10_Test-1-1.0.jar");
@@ -217,7 +209,7 @@ public class TestPluginManager extends JemoGSMTest {
 		}finally {
 			CloudProvider.defineCustomeRuntime(null);
 			knownApplications.clear();
-			knownApplications.addAll(origKnownApplications);
+			knownApplications.putAll(origKnownApplications);
 		}
 	}
 	
@@ -339,12 +331,12 @@ public class TestPluginManager extends JemoGSMTest {
 		jemoServer.getPluginManager().process(new HttpServletRequestAdapter() {
 			@Override
 			public String getServletPath() {
-				return "/1/v1.0/test";
+				return "/2/v1.0/test";
 			}
 
 			@Override
 			public StringBuffer getRequestURL() {
-				return new StringBuffer("https://localhost:8080/1/v1.0/test");
+				return new StringBuffer("https://localhost:8080/2/v1.0/test");
 			}
 
 		}, new HttpServletResponseAdapter() {
@@ -353,10 +345,10 @@ public class TestPluginManager extends JemoGSMTest {
 				errorStr.value = string;
 			}
 		});
-		assertEquals("no module mapping defined for: /1/v1.0/test supported mappings are: "+Util.getFieldValue(jemoServer.getPluginManager(), "moduleEndpointMap", Map.class).toString(), errorStr.value);
+		assertEquals("no module mapping defined for: /2/v1.0/test supported mappings are: "+Util.getFieldValue(jemoServer.getPluginManager(), "moduleEndpointMap", Map.class).toString(), errorStr.value);
 		//ok now lets test the virtual host scenario
 		Map<String,String> vhostMap = Util.getFieldValue(jemoServer.getPluginManager(), "virtualHostMap", Map.class);
-		vhostMap.put("//www.google.com", "/1/v1.0/test");
+		vhostMap.put("//www.google.com", "/2/v1.0/test");
 		jemoServer.getPluginManager().process(new HttpServletRequestAdapter() {
 			@Override
 			public String getServletPath() {
@@ -374,14 +366,14 @@ public class TestPluginManager extends JemoGSMTest {
 				errorStr.value = string;
 			}
 		});
-		assertEquals("the path: /1/v1.0/test does not currespond to any mappings. supported mappings are: "+Util.getFieldValue(jemoServer.getPluginManager(), "moduleEndpointMap", Map.class).toString(), errorStr.value);
+		assertEquals("the path: /2/v1.0/test does not currespond to any mappings. supported mappings are: "+Util.getFieldValue(jemoServer.getPluginManager(), "moduleEndpointMap", Map.class).toString(), errorStr.value);
 		//ok now lets add a module map for our test module.
-		uploadPlugin(1, 1.0, TestWebModule.class.getSimpleName(), TestWebModule.class, TestPluginManager.class);
+		uploadPlugin(2, 1.0, TestWebModule.class.getSimpleName(), TestWebModule.class, TestPluginManager.class);
 		//we now need to wait until the upload has completed.
 		do {
 			TimeUnit.SECONDS.sleep(1);
 		}while(!((List<JemoApplicationMetaData>)Util.getFieldValue(jemoServer.getPluginManager(),"APPLICATION_LIST", List.class)).stream().anyMatch(app -> JemoPluginManager.PLUGIN_ID(app.getId()) == 1));
-		assertNotNull(Util.getFieldValue(jemoServer.getPluginManager(), "moduleEndpointMap", Map.class).get("/1/v1.0/test"));
+		assertNotNull(Util.getFieldValue(jemoServer.getPluginManager(), "moduleEndpointMap", Map.class).get("/2/v1.0/test"));
 		errorStr.value = null;
 		jemoServer.getPluginManager().process(new HttpServletRequestAdapter() {
 			@Override

@@ -14,49 +14,50 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
-package org.eclipse.jemo;
+package org.eclipse.jemo.aws;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import junit.framework.TestCase;
+import org.eclipse.jemo.Jemo;
 import org.eclipse.jemo.internal.model.*;
-import org.eclipse.jemo.internal.model.JemoMessage;
-import org.eclipse.jemo.runtime.MemoryRuntime;
 import org.eclipse.jemo.sys.auth.JemoUser;
 import org.eclipse.jemo.sys.internal.Util;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import org.junit.Assert;
-
+import static org.eclipse.jemo.api.JemoParameter.*;
 import static org.junit.Assert.*;
-
-import org.junit.Test;
 
 /**
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
-public class TestCloudRuntime extends JemoBaseTest {
+public class TestAmazonAWSRuntime extends TestCase {
 
-    private MemoryRuntime runtime;
-
-    public TestCloudRuntime() throws Throwable {
-        super();
-    }
-
+    private AmazonAWSRuntime runtime;
 
     @Override
     protected void setUp() throws Exception {
-        runtime = new MemoryRuntime();
-        runtime.start(jemoServer);
+        if (System.getProperty("aws.accessKeyId") == null || System.getProperty("aws.secretKey") == null) {
+            throw new RuntimeException("Please provide AWS credentials as VM variables 'aws.accessKeyId' and 'aws.secretKey'.");
+        }
+
+        String region = System.getProperty("ECLIPSE_JEMO_AWS_REGION") != null ? System.getProperty("ECLIPSE_JEMO_AWS_REGION") : "eu-west-1";
+        System.setProperty("ECLIPSE_JEMO_AWS_REGION", region);
+        System.setProperty(LOG_LOCAL.label(), "true");
+        System.setProperty("eclipse.jemo.azure.msg.model", "QUEUE");
+        System.setProperty(LOG_LEVEL.label(), "INFO");
+        System.setProperty(CLOUD.label(), "AWS");
+
+        runtime = new AmazonAWSRuntime();
+        runtime.start(null);
     }
 
     /**
@@ -240,7 +241,7 @@ public class TestCloudRuntime extends JemoBaseTest {
     @Test
     public void testUploadModule() throws Throwable {
         ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-        Util.createJar(byteOut, TestCloudRuntime.class);
+        Util.createJar(byteOut, TestAmazonAWSRuntime.class);
         final byte[] jarBytes = byteOut.toByteArray();
 
         runtime.uploadModule("60000_Test-1-1.0.jar", jarBytes);

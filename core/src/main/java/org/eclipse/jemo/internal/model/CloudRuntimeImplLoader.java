@@ -42,7 +42,6 @@ public class CloudRuntimeImplLoader {
         ServiceLoader<CloudRuntimeProvider> serviceLoader = ServiceLoader.load(CloudRuntimeProvider.class, pluginClassLoader);
         List<CloudRuntimeProvider> providers = new ArrayList<>();
         for (CloudRuntimeProvider provider : serviceLoader) {
-            System.out.println("Found CloudRuntimeProvider: " + provider.getClass());
             providers.add(provider);
         }
         return providers;
