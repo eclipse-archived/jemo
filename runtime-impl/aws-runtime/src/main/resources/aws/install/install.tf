@@ -1,5 +1,5 @@
 provider "aws" {
-  version = "~> 1.58"
+  version = "~> 2.7"
   access_key = "${var.terraform_user_access_key}"
   secret_key = "${var.terraform_user_secret_key}"
   region = "${var.region}"
