@@ -1679,7 +1679,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
                                             .containers(asList(
                                                     new V1Container()
                                                             .name("jemo")
-                                                            .image("eclipse/jemo:1.0.6")
+                                                            .image("eclipse/jemo:1.0.8-SNAPSHOT")
                                                             .env(asList(
                                                                     new V1EnvVar().name(AWS_REGION_PROP).value(AWSREGION),
                                                                     new V1EnvVar().name(CLOUD.label()).value("AWS"),
