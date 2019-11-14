@@ -1486,7 +1486,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
                         new ClusterParam("worker-node-role-name", "jemo-node-role", "the worker nodes role name"),
                         new ClusterParam("worker-node-instance-profile-name", "jemo-node-instance-profile", "the worker nodes instance profile name"),
                         new ClusterParam("worker-node-security-group-name", "jemo-node-security-group", "the worker nodes security group name"),
-                        new ClusterParam("launch-conf-instance-type", "m4.large", "the AWS launch configuration instance type",
+                        new ClusterParam("launch-conf-instance-type", "t2.micro", "the AWS launch configuration instance type",
                                 asList(
                                         "a1.medium", "a1.large", "a1.xlarge", "a1.2xlarge", "a1.4xlarge",
                                         "t3.nano", "t3.micro", "t3.small", "t3.medium", "t3.large", "t3.xlarge", "t3.2xlarge",
