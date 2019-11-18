@@ -185,7 +185,9 @@ public enum CloudProvider {
 
     @JsonProperty
     public AdminUserCreationInstructions getAdminUserCreationInstructions() {
-        return runtime == null ? null : runtime.getAdminUserCreationInstructions();
+        return runtime == null ?
+            getRuntimeByName(this.name).getAdminUserCreationInstructions() :
+            runtime.getAdminUserCreationInstructions();
     }
 
     @JsonProperty
