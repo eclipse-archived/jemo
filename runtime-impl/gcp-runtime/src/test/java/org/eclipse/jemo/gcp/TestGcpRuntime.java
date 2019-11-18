@@ -57,7 +57,7 @@ public class TestGcpRuntime extends TestCase {
         System.setProperty(LOG_LEVEL.label(), "INFO");
         System.setProperty(CLOUD.label(), "GCP");
 
-        String user = "terraform-user";
+        String user = "jemo-user";
         System.setProperty(PROP_USER, user);
         String projectId = "api-project-685953918458";
         System.setProperty(PROP_PROJECT_ID, projectId);

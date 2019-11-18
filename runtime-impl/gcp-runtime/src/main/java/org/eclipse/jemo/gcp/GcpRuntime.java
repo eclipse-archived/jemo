@@ -67,8 +67,8 @@ import static org.eclipse.jemo.sys.internal.Util.*;
 public class GcpRuntime implements CloudRuntime {
 
     private static final Logger LOG = Logger.getLogger(GcpRuntime.class.getSimpleName());
-    public static final String GCP_PROJECT_ID = "project_id";
-    public static final String GCP_SERVICE_ACCOUNT_ID = "service_account_id";
+    private static final String GCP_PROJECT_ID = "project_id";
+    private static final String GCP_SERVICE_ACCOUNT_ID = "service_account_id";
     static final String PROP_PROJECT_ID = "eclipse.jemo.gcp.project_id";
     static final String PROP_USER = "eclipse.jemo.gcp.user";
     private static final String QUEUES_METADATA = "queues_metadata";
@@ -82,7 +82,7 @@ public class GcpRuntime implements CloudRuntime {
     private static GoogleCredential CREDENTIALS;
     private static String PROJECT_ID;
     private static final ExecutorService EVENT_PROCESSOR = Executors.newCachedThreadPool();
-    public static final String GCP_REGION_PROP = "ECLIPSE_JEMO_GCP_REGION";
+    private static final String GCP_REGION_PROP = "ECLIPSE_JEMO_GCP_REGION";
     private static String REGION;
 
     private final Set<String> requiredRoles = new HashSet<String>() {{
