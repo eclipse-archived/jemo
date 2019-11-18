@@ -1545,7 +1545,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
         if (!Files.exists(kubernetesDirPath)) {
             Files.createDirectory(kubernetesDirPath);
         }
-        final String sourceDir = getTerraformClusterDir() + "/kubernetes/";
+        final String sourceDir = getTerraformClusterDir() + "kubernetes/";
         copy(sourceDir, kubernetesDirPath, "jemo-svc.yaml", getClass());
         final String replicas = setupParams.parameters().get("autoscaling-group-desired-capacity");
         applyTemplate(sourceDir, kubernetesDirPath, "jemo-statefulset.yaml", getClass(), x -> x.replaceAll("_JEMO_REPLICAS_", replicas).replaceAll("_REGION_", AWSREGION));

@@ -1670,7 +1670,7 @@ public class MicrosoftAzureRuntime implements CloudRuntime {
             Files.copy(source, terraformDirPath.resolve("terraform.tfstate"));
         }
 
-        final String kubernetesDir = getTerraformClusterDir() + "/kubernetes/";
+        final String kubernetesDir = getTerraformClusterDir() + "kubernetes/";
         String[] command = new String[]{
                 "/bin/sh", "-c", "echo \"$(terraform output kube_config)\" > ~/.kube/config ; " +
                 "kubectl create -f https://raw.githubusercontent.com/Azure/kubernetes-keyvault-flexvol/master/deployment/kv-flexvol-installer.yaml ; " +

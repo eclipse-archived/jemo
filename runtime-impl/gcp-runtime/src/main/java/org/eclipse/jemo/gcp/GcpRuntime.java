@@ -850,7 +850,7 @@ public class GcpRuntime implements CloudRuntime {
             Files.copy(source, terraformDirPath.resolve("terraform.tfstate"));
         }
 
-        final String kubernetesDir = getTerraformClusterDir() + "/kubernetes/";
+        final String kubernetesDir = getTerraformClusterDir() + "kubernetes/";
         runProcess(builder, new String[]{
                 "/bin/sh", "-c", "gcloud container clusters get-credentials jemo-cluster ; " +
                 "kubectl create -f " + kubernetesDir + "/credentials.yaml ; " +
@@ -888,7 +888,7 @@ public class GcpRuntime implements CloudRuntime {
         if (!Files.exists(kubernetesDirPath)) {
             Files.createDirectory(kubernetesDirPath);
         }
-        final String sourceDir = getTerraformClusterDir() + "/kubernetes/";
+        final String sourceDir = getTerraformClusterDir() + "kubernetes/";
         copy(sourceDir, kubernetesDirPath, "jemo-svc.yaml", getClass());
 
         final String jemoKeyFileContent = Files.lines(jsonKeyFilePath(GCP_USER, PROJECT_ID)).collect(Collectors.joining("\n"));
