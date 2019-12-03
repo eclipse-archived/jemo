@@ -16,6 +16,7 @@
 ********************************************************************************/
 package org.eclipse.jemo;
 
+import junit.framework.TestCase;
 import org.eclipse.jemo.api.KeyValue;
 import org.eclipse.jemo.api.Module;
 import org.eclipse.jemo.internal.model.*;
@@ -26,8 +27,6 @@ import org.eclipse.jemo.sys.auth.JemoGroup;
 import org.eclipse.jemo.sys.auth.JemoUser;
 import org.eclipse.jemo.sys.internal.JarEntry;
 import org.eclipse.jemo.sys.internal.Util;
-import org.eclipse.jemo.sys.microprofile.MicroProfileConfigSource;
-import org.eclipse.jemo.sys.microprofile.MicroProfileConfigSourceTest.FixedTestModule;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -48,8 +47,6 @@ import org.junit.AfterClass;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import static org.eclipse.jemo.api.JemoParameter.*;
-import static org.eclipse.jemo.internal.model.AmazonAWSRuntime.AWS_REGION_PROP;
-import static org.eclipse.jemo.internal.model.GCPRuntime.GCP_REGION_PROP;
 import static org.eclipse.jemo.sys.JemoPluginManager.PLUGIN_ID;
 import static org.eclipse.jemo.sys.JemoPluginManager.PLUGIN_VERSION;
 
@@ -57,7 +54,7 @@ import static org.eclipse.jemo.sys.JemoPluginManager.PLUGIN_VERSION;
  *
  * @author Christopher Stura "christopher.stura@cloudreach.com"
  */
-public abstract class JemoBaseTest {
+public abstract class JemoBaseTest extends TestCase {
 
 	public static class TestJemoServer extends AbstractJemo {
 		public TestJemoServer(final String UUID_FILE_NAME, final String location, final int httpPort, final String pluginWhitelist) {
@@ -75,8 +72,6 @@ public abstract class JemoBaseTest {
 	protected TestJemoServer jemoServer = null;
 	
 	protected JemoBaseTest(boolean serverInstance) {
-		System.setProperty(AWS_REGION_PROP,"eu-west-1");
-		System.setProperty(GCP_REGION_PROP,"europe-west2-a");
 		System.setProperty(LOG_LOCAL.label(),"true");
 		System.setProperty(CLOUD.label(),"MEMORY");
 		System.setProperty("eclipse.jemo.azure.msg.model","QUEUE");

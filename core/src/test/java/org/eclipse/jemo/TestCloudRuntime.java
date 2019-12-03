@@ -18,6 +18,7 @@ package org.eclipse.jemo;
 
 import org.eclipse.jemo.internal.model.*;
 import org.eclipse.jemo.internal.model.JemoMessage;
+import org.eclipse.jemo.runtime.MemoryRuntime;
 import org.eclipse.jemo.sys.auth.JemoUser;
 import org.eclipse.jemo.sys.internal.Util;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,8 +46,17 @@ import org.junit.Test;
  */
 public class TestCloudRuntime extends JemoBaseTest {
 
+    private MemoryRuntime runtime;
+
     public TestCloudRuntime() throws Throwable {
         super();
+    }
+
+
+    @Override
+    protected void setUp() throws Exception {
+        runtime = new MemoryRuntime();
+        runtime.start(jemoServer);
     }
 
     /**
@@ -54,14 +64,6 @@ public class TestCloudRuntime extends JemoBaseTest {
      */
     @Test
     public void testStoreRetrieveString() throws Throwable {
-        //test functionality on amazon (aws)
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testStoreRetrieveString(provider.getRuntime());
-        }
-    }
-
-    protected void testStoreRetrieveString(CloudRuntime runtime) throws Throwable {
         try {
             String keyValue = "String value";
             runtime.store("jemo_test_testStoreRetrieveString", keyValue);
@@ -83,13 +85,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testDeleteNoSQL() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testDeleteNoSQL(provider.getRuntime());
-        }
-    }
-
-    protected void testDeleteNoSQL(CloudRuntime runtime) throws Throwable {
         //we need to create a temporary table to run the test.
         final String noSqlTable = "JEMO-TEST-NOSQL";
         JemoUser user = new JemoUser();
@@ -113,13 +108,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testDropNoSQLTable() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testDropNoSQLTable(provider.getRuntime());
-        }
-    }
-
-    protected void testDropNoSQLTable(CloudRuntime runtime) throws Throwable {
         final String noSqlTable = "JEMO-TEST-NOSQL";
         runtime.createNoSQLTable(noSqlTable);
         assertTrue(runtime.hasNoSQLTable(noSqlTable));
@@ -129,13 +117,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testQueryNoSQL() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testQueryNoSQL(provider.getRuntime());
-        }
-    }
-
-    protected void testQueryNoSQL(CloudRuntime runtime) throws Throwable {
         final String noSqlTable = "JEMO-TEST-NOSQL";
         runtime.createNoSQLTable(noSqlTable);
         try {
@@ -157,13 +138,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testSaveNoSQL() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testSaveNoSQL(provider.getRuntime());
-        }
-    }
-
-    protected void testSaveNoSQL(CloudRuntime runtime) throws Throwable {
         final String noSqlTable = "JEMO-TEST-NOSQL";
         runtime.createNoSQLTable(noSqlTable);
         try {
@@ -190,13 +164,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testGetQueueId() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testGetQueueId(provider.getRuntime());
-        }
-    }
-
-    protected void testGetQueueId(CloudRuntime runtime) throws Throwable {
         //we will have 3 different types of queues that the system will use. these are as follows.
         //1. a queue which identifies the instance JEMO-[LOCATION]-[INSTANCE_ID]
         //2. a queue which identifies the location JEMO-[LOCATION]-[WORK-QUEUE]
@@ -240,13 +207,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testGetNoSQL() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testGetNoSQL(provider.getRuntime());
-        }
-    }
-
-    protected void testGetNoSQL(CloudRuntime runtime) throws Throwable {
         try {
             runtime.getNoSQL("RANDOM_TABLE", "random_id", JemoUser.class);
             assertFalse(runtime.getClass().getSimpleName(), true);
@@ -265,13 +225,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testGetQueueName() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testGetQueueName(provider.getRuntime());
-        }
-    }
-
-    protected void testGetQueueName(CloudRuntime runtime) throws Throwable {
         final String TEST_QUEUE_NAME = "JEMO-UNITTEST-" + UUID.randomUUID().toString();
         String testQueueId = null;
         try {
@@ -286,13 +239,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testUploadModule() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testUploadModule(provider.getRuntime());
-        }
-    }
-
-    protected void testUploadModule(CloudRuntime runtime) throws Throwable {
         ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
         Util.createJar(byteOut, TestCloudRuntime.class);
         final byte[] jarBytes = byteOut.toByteArray();
@@ -309,13 +255,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testModuleConfiguration() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testModuleConfiguration(provider.getRuntime());
-        }
-    }
-
-    public void testModuleConfiguration(CloudRuntime runtime) throws Throwable {
         Map<String, String> config = runtime.getModuleConfiguration(60000);
         assertTrue(config.isEmpty());
         try {
@@ -371,13 +310,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testPollQueue() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testPollQueue(provider.getRuntime());
-        }
-    }
-
-    protected void testPollQueue(CloudRuntime runtime) throws Throwable {
         //create a queue
         final String TEST_QUEUE_NAME = "JEMO-UNITTEST-" + UUID.randomUUID().toString();
         final String QUEUE_ID = runtime.defineQueue(TEST_QUEUE_NAME);
@@ -418,13 +350,6 @@ public class TestCloudRuntime extends JemoBaseTest {
 
     @Test
     public void testReadWriteInputStream() throws Throwable {
-        for (CloudProvider provider : CloudProvider.values()) {
-            provider.getRuntime().start(jemoServer);
-            testReadWriteInputStream(provider.getRuntime());
-        }
-    }
-
-    protected void testReadWriteInputStream(CloudRuntime runtime) throws Throwable {
         final byte[] data = new byte[]{1, 2, 3};
         runtime.write("test", "test", new ByteArrayInputStream(data));
         try {

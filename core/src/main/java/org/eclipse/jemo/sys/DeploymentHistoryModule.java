@@ -1,6 +1,5 @@
 package org.eclipse.jemo.sys;
 
-import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.api.BatchModule;
 import org.eclipse.jemo.api.Frequency;
 import org.eclipse.jemo.api.ModuleLimit;
@@ -9,7 +8,6 @@ import org.eclipse.jemo.sys.internal.SystemDB;
 
 import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.logging.Level.INFO;
 import static org.eclipse.jemo.sys.JemoRuntimeAdmin.DEPLOYMENT_HISTORY_TABLE;
