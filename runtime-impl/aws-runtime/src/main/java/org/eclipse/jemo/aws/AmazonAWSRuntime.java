@@ -32,42 +32,18 @@ import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec;
 import com.amazonaws.services.dynamodbv2.model.*;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
-import com.amazonaws.services.ec2.model.*;
+import com.amazonaws.services.ec2.model.DescribeTagsRequest;
+import com.amazonaws.services.ec2.model.DescribeTagsResult;
 import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
 import com.amazonaws.services.identitymanagement.model.*;
 import com.amazonaws.services.logs.AWSLogsAsync;
 import com.amazonaws.services.logs.AWSLogsAsyncClientBuilder;
-import com.amazonaws.services.logs.model.AWSLogsException;
-import com.amazonaws.services.logs.model.CreateLogGroupRequest;
-import com.amazonaws.services.logs.model.CreateLogStreamRequest;
-import com.amazonaws.services.logs.model.DescribeLogStreamsRequest;
-import com.amazonaws.services.logs.model.InputLogEvent;
-import com.amazonaws.services.logs.model.LogStream;
-import com.amazonaws.services.logs.model.PutLogEventsRequest;
+import com.amazonaws.services.logs.model.*;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.HeadBucketRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.UploadPartRequest;
-import com.amazonaws.services.s3.model.UploadPartResult;
+import com.amazonaws.services.s3.model.*;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
@@ -76,34 +52,8 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSAsync;
 import com.amazonaws.services.sqs.AmazonSQSAsyncClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.sqs.model.CreateQueueRequest;
-import com.amazonaws.services.sqs.model.CreateQueueResult;
-import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
-import com.amazonaws.services.sqs.model.QueueAttributeName;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import com.amazonaws.services.sqs.model.SetQueueAttributesRequest;
+import com.amazonaws.services.sqs.model.*;
 import com.amazonaws.util.EC2MetadataUtils;
-import org.eclipse.jemo.AbstractJemo;
-import org.eclipse.jemo.Jemo;
-import static org.eclipse.jemo.Jemo.JEMO_VERSION;
-
-import static com.amazonaws.services.s3.model.Region.fromValue;
-import static org.eclipse.jemo.Jemo.executeFailsafe;
-import static org.eclipse.jemo.api.JemoParameter.*;
-import static org.eclipse.jemo.sys.internal.Util.*;
-import static java.lang.Thread.sleep;
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
-
-import org.eclipse.jemo.internal.model.CloudRuntime;
-import org.eclipse.jemo.sys.ClusterParams;
-import org.eclipse.jemo.sys.ClusterParams.ClusterParam;
-import org.eclipse.jemo.sys.internal.TerraformJob;
-import org.eclipse.jemo.sys.internal.TerraformJob.TerraformResult;
-import org.eclipse.jemo.sys.internal.Util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.io.BaseEncoding;
 import io.kubernetes.client.ApiClient;
@@ -113,8 +63,18 @@ import io.kubernetes.client.apis.AppsV1Api;
 import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.models.*;
 import io.kubernetes.client.util.Config;
+import org.eclipse.jemo.AbstractJemo;
+import org.eclipse.jemo.Jemo;
+import org.eclipse.jemo.internal.model.QueueDoesNotExistException;
+import org.eclipse.jemo.internal.model.*;
+import org.eclipse.jemo.sys.ClusterParams;
+import org.eclipse.jemo.sys.ClusterParams.ClusterParam;
 import org.eclipse.jemo.sys.JemoRuntimeSetup;
+import org.eclipse.jemo.sys.internal.TerraformJob;
+import org.eclipse.jemo.sys.internal.TerraformJob.TerraformResult;
+import org.eclipse.jemo.sys.internal.Util;
 
+import javax.xml.ws.Holder;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.URI;
@@ -126,24 +86,29 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.logging.*;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import javax.xml.ws.Holder;
+
+import static com.amazonaws.services.s3.model.Region.fromValue;
+import static java.lang.Thread.sleep;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+import static org.eclipse.jemo.AbstractJemo.executeFailsafe;
+import static org.eclipse.jemo.api.JemoParameter.*;
+import static org.eclipse.jemo.sys.internal.Util.*;
 
 /**
  * @author Christopher Stura "christopher.stura@cloudreach.com"
@@ -159,6 +124,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
     private static final String[] DYNAMO_SYSTEM_TABLES = new String[]{"eclipse_jemo_module_configuration", "eclipse_jemo_security_groups", "eclipse_jemo_security_users", "eclipse_jemo_modules"};
     public static final String AWS_REGION_PROP = "ECLIPSE_JEMO_AWS_REGION";
     private static String AWSREGION;
+    private static String JEMO_VERSION;
 
     private String arn;
     private static final String[] ACTION_NAMES = new String[]{
@@ -413,6 +379,14 @@ public class AmazonAWSRuntime implements CloudRuntime {
 
     public AmazonAWSRuntime() {
         AWSREGION = Util.readParameterFromJvmOrEnv(AWS_REGION_PROP);
+
+        final Properties pomProperties = new Properties();
+        try {
+            pomProperties.load(AmazonAWSRuntime.class.getClassLoader().getResourceAsStream("pom.properties"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        JEMO_VERSION = pomProperties.getProperty("jemo.pom.version");
     }
 
     @Override
@@ -1427,7 +1401,7 @@ public class AmazonAWSRuntime implements CloudRuntime {
         signer.setServiceName("sts");
 
         signer.presignRequest(request, AWS_CREDENTIALS().getCredentials(),
-                new java.util.Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(60))); // must be <=60 seconds
+                new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(60))); // must be <=60 seconds
 
         StringBuilder sb = new StringBuilder();
 
@@ -1683,74 +1657,74 @@ public class AmazonAWSRuntime implements CloudRuntime {
 
         try {
             final ApiClient apiClient = Config.fromToken(clusterUrl, token, false);
-        Configuration.setDefaultApiClient(apiClient);
-        final AppsV1Api appsV1Api = new AppsV1Api();
-        final CoreV1Api coreV1Api = new CoreV1Api();
+            Configuration.setDefaultApiClient(apiClient);
+            final AppsV1Api appsV1Api = new AppsV1Api();
+            final CoreV1Api coreV1Api = new CoreV1Api();
 
-        reportAndLog(builder, "Creating the config map...");
-        V1ConfigMap configMap = new V1ConfigMap()
-                .apiVersion("v1")
-                .kind("ConfigMap")
-                .metadata(new V1ObjectMeta()
-                        .name("aws-auth")
-                        .namespace("kube-system"))
-                .putDataItem("mapRoles",
-                        "- rolearn: " + jemoWorkerNodeRole + "\n" +
-                                "  username: system:node:{{EC2PrivateDNSName}}\n" +
-                                "  groups:\n" +
-                                "    - system:bootstrappers\n" +
-                                "    - system:nodes\n");
-        coreV1Api.createNamespacedConfigMap("kube-system", configMap, null, null, null);
+            reportAndLog(builder, "Creating the config map...");
+            V1ConfigMap configMap = new V1ConfigMap()
+                    .apiVersion("v1")
+                    .kind("ConfigMap")
+                    .metadata(new V1ObjectMeta()
+                            .name("aws-auth")
+                            .namespace("kube-system"))
+                    .putDataItem("mapRoles",
+                            "- rolearn: " + jemoWorkerNodeRole + "\n" +
+                                    "  username: system:node:{{EC2PrivateDNSName}}\n" +
+                                    "  groups:\n" +
+                                    "    - system:bootstrappers\n" +
+                                    "    - system:nodes\n");
+            coreV1Api.createNamespacedConfigMap("kube-system", configMap, null, null, null);
 
-        reportAndLog(builder, "Creating the jemo pods...");
-        final V1StatefulSet v1StatefulSet = new V1StatefulSet()
-                .apiVersion("apps/v1")
-                .kind("StatefulSet")
-                .metadata(new V1ObjectMeta().name("jemo"))
-                .spec(new V1StatefulSetSpec()
-                        .replicas(replicas)
-                        .selector(new V1LabelSelector()
-                                .putMatchLabelsItem("app", "jemo"))
-                        .template(new V1PodTemplateSpec()
-                                .metadata(new V1ObjectMeta().putLabelsItem("app", "jemo"))
-                                .spec(new V1PodSpec()
-                                        .containers(asList(
-                                                new V1Container()
-                                                        .name("jemo")
-                                                        .image("eclipse/jemo:" + JEMO_VERSION)
-                                                        .env(asList(
-                                                                new V1EnvVar().name(AWS_REGION_PROP).value(AWSREGION),
-                                                                new V1EnvVar().name(CLOUD.label()).value("AWS"),
-                                                                new V1EnvVar().name(HTTP_PORT.label()).value("80"),
-                                                                new V1EnvVar().name(HTTPS_PORT.label()).value("443")))
-                                                        .ports(singletonList(new V1ContainerPort().containerPort(80)))
-                                        )))));
-        appsV1Api.createNamespacedStatefulSet("default", v1StatefulSet, null, null, null);
+            reportAndLog(builder, "Creating the jemo pods...");
+            final V1StatefulSet v1StatefulSet = new V1StatefulSet()
+                    .apiVersion("apps/v1")
+                    .kind("StatefulSet")
+                    .metadata(new V1ObjectMeta().name("jemo"))
+                    .spec(new V1StatefulSetSpec()
+                            .replicas(replicas)
+                            .selector(new V1LabelSelector()
+                                    .putMatchLabelsItem("app", "jemo"))
+                            .template(new V1PodTemplateSpec()
+                                    .metadata(new V1ObjectMeta().putLabelsItem("app", "jemo"))
+                                    .spec(new V1PodSpec()
+                                            .containers(asList(
+                                                    new V1Container()
+                                                            .name("jemo")
+                                                            .image("eclipse/jemo:" + JEMO_VERSION)
+                                                            .env(asList(
+                                                                    new V1EnvVar().name(AWS_REGION_PROP).value(AWSREGION),
+                                                                    new V1EnvVar().name(CLOUD.label()).value("AWS"),
+                                                                    new V1EnvVar().name(HTTP_PORT.label()).value("80"),
+                                                                    new V1EnvVar().name(HTTPS_PORT.label()).value("443")))
+                                                            .ports(singletonList(new V1ContainerPort().containerPort(80)))
+                                            )))));
+            appsV1Api.createNamespacedStatefulSet("default", v1StatefulSet, null, null, null);
 
-        long start = System.currentTimeMillis();
-        long duration;
-        V1StatefulSet createdStatefulSet;
-        do {
-            createdStatefulSet = appsV1Api.readNamespacedStatefulSet("jemo", "default", "true", null, null);
-            duration = (System.currentTimeMillis() - start) / 60_000;
-        } while (duration < 5 && !replicas.equals(createdStatefulSet.getStatus().getReadyReplicas()));
+            long start = System.currentTimeMillis();
+            long duration;
+            V1StatefulSet createdStatefulSet;
+            do {
+                createdStatefulSet = appsV1Api.readNamespacedStatefulSet("jemo", "default", "true", null, null);
+                duration = (System.currentTimeMillis() - start) / 60_000;
+            } while (duration < 5 && !replicas.equals(createdStatefulSet.getStatus().getReadyReplicas()));
 
-        reportAndLog(builder, "Creating the jemo load balancer service...");
-        final V1Service jemoLoadBalancerService = new V1Service()
-                .apiVersion("v1")
-                .kind("Service")
-                .metadata(new V1ObjectMeta()
-                        .name("jemo")
-                        .putLabelsItem("app", "jemo")
-                        .putAnnotationsItem("service.beta.kubernetes.io/aws-load-balancer-type", "nlb"))
-                .spec(new V1ServiceSpec()
-                        .ports(asList(
-                                new V1ServicePort().name("http").port(80).protocol("TCP"),
-                                new V1ServicePort().name("https").port(443).protocol("TCP")
-                        ))
-                        .putSelectorItem("app", "jemo")
-                        .type("LoadBalancer"));
-        coreV1Api.createNamespacedService("default", jemoLoadBalancerService, null, null, null);
+            reportAndLog(builder, "Creating the jemo load balancer service...");
+            final V1Service jemoLoadBalancerService = new V1Service()
+                    .apiVersion("v1")
+                    .kind("Service")
+                    .metadata(new V1ObjectMeta()
+                            .name("jemo")
+                            .putLabelsItem("app", "jemo")
+                            .putAnnotationsItem("service.beta.kubernetes.io/aws-load-balancer-type", "nlb"))
+                    .spec(new V1ServiceSpec()
+                            .ports(asList(
+                                    new V1ServicePort().name("http").port(80).protocol("TCP"),
+                                    new V1ServicePort().name("https").port(443).protocol("TCP")
+                            ))
+                            .putSelectorItem("app", "jemo")
+                            .type("LoadBalancer"));
+            coreV1Api.createNamespacedService("default", jemoLoadBalancerService, null, null, null);
             loadBalancerUrl = getLoadBalancerUrl(coreV1Api);
         } catch (Exception e) {
             throw new RuntimeException(e);

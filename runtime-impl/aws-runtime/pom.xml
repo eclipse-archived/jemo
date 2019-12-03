@@ -15,6 +15,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <jemo.version>1.1.0-a</jemo.version>
         <awsjavasdk.version>1.11.519</awsjavasdk.version>
     </properties>
 
@@ -22,7 +23,7 @@
         <dependency>
             <groupId>org.eclipse.jemo</groupId>
             <artifactId>jemo</artifactId>
-            <version>1.0.8-SNAPSHOT</version>
+            <version>${jemo.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -93,6 +94,23 @@
 
     <build>
         <finalName>${project.artifactId}</finalName>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/pom.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/pom.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

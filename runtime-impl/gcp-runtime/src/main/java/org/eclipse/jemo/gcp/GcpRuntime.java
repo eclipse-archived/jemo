@@ -56,7 +56,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
-import static org.eclipse.jemo.Jemo.JEMO_VERSION;
 import static org.eclipse.jemo.sys.JemoRuntimeSetup.TFVARS_FILE_NAME;
 import static org.eclipse.jemo.sys.internal.Util.*;
 
@@ -98,12 +97,21 @@ public class GcpRuntime implements CloudRuntime {
     private Map<String, Bucket> categoryToBucket = new HashMap<>();
     private Logging logging;
     private final AtomicBoolean LOGGING_INITIALIZED = new AtomicBoolean(false);
+    private static String JEMO_VERSION;
 
     public GcpRuntime() {
         Properties properties = readPropertiesFile();
         GCP_USER = System.getProperty(PROP_USER) != null ? System.getProperty(PROP_USER) : "jemo-user";
         PROJECT_ID = readProperty(PROP_PROJECT_ID, properties, ServiceOptions.getDefaultProjectId());
         REGION = readProperty(GCP_REGION_PROP, properties, null);
+
+        final Properties pomProperties = new Properties();
+        try {
+            pomProperties.load(GcpRuntime.class.getClassLoader().getResourceAsStream("pom.properties"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        JEMO_VERSION = pomProperties.getProperty("jemo.pom.version");
     }
 
     private Datastore datastore() {
