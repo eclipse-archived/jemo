@@ -16,12 +16,16 @@
 ********************************************************************************/
 package org.eclipse.jemo.sys;
 
+import org.eclipse.jemo.AbstractJemo;
 import org.eclipse.jemo.Jemo;
 import org.eclipse.jemo.api.Module;
 import org.eclipse.jemo.internal.model.JemoError;
 import org.eclipse.jemo.internal.model.CloudBlob;
 import org.eclipse.jemo.internal.model.CloudProvider;
+import org.eclipse.jemo.internal.model.JemoApplicationMetaData;
 import org.eclipse.jemo.sys.internal.Util;
+import org.eclipse.jemo.sys.microprofile.JemoConfig;
+import org.eclipse.microprofile.config.Config;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -185,6 +189,11 @@ public class JemoClassLoader extends URLClassLoader {
 	private Map<Integer,AdjacentClassLoader> adjacentClassLoaderMap = new LinkedHashMap<>();
 	private Set<String> loadedClasses = new ConcurrentSkipListSet<>();
 	private volatile Set<String> localClassList = null;
+	private volatile JemoConfig appConfig = null;
+	private volatile int applicationId = 0;
+	private volatile double applicationVersion = 1.0;
+	private volatile AbstractJemo jemoServer = null;
+	private volatile JemoApplicationMetaData applicationMetadata = null;
 	
 	public JemoClassLoader(String uniqueKey, byte[] data) {
 		this(uniqueKey, data, JemoClassLoader.class.getClassLoader());
@@ -212,21 +221,23 @@ public class JemoClassLoader extends URLClassLoader {
 		if(downloadAndCache) {
 			cacheDirectory.mkdirs();
 			//ok we need to download and unpack
-			Jemo.log(Level.INFO, "[%s] has not been downloaded, and will now be downloaded and unpacked.", jarModule);
 			CloudBlob blob = CloudProvider.getInstance().getRuntime().getModule(jarModule);
-			int retry = 5;
-			do {
-				try(FileOutputStream fout = new FileOutputStream(new File(cacheDirectory, "create_date"))) {
-					fout.write(String.valueOf(blob.getCreatedDate()).getBytes("UTF-8"));
-					retry = 0;
-				} catch(FileNotFoundException fnfEx) {
-					try { Thread.sleep(500); } catch(InterruptedException irrEx) {}//wait 500 ms.
-					cacheDirectory.mkdirs();
-				}
-				retry--;
-			}while(retry > 0);
-			this.createdDate = blob.getCreatedDate();
-			initClassLoader(blob.getDataStream());
+			if(blob != null) {
+				Jemo.log(Level.INFO, "[%s] has not been downloaded, and will now be downloaded and unpacked.", jarModule);
+				int retry = 5;
+				do {
+					try(FileOutputStream fout = new FileOutputStream(new File(cacheDirectory, "create_date"))) {
+						fout.write(String.valueOf(blob.getCreatedDate()).getBytes("UTF-8"));
+						retry = 0;
+					} catch(FileNotFoundException fnfEx) {
+						try { Thread.sleep(500); } catch(InterruptedException irrEx) {}//wait 500 ms.
+						cacheDirectory.mkdirs();
+					}
+					retry--;
+				}while(retry > 0);
+				this.createdDate = blob.getCreatedDate();
+				initClassLoader(blob.getDataStream());
+			}
 		} else {
 			this.crc32 = moduleCrc;
 			try(FileInputStream fin = new FileInputStream(new File(cacheDirectory, "create_date"))) {
@@ -520,6 +531,8 @@ public class JemoClassLoader extends URLClassLoader {
 
 	@Override
 	public void close() throws IOException {
+		this.appConfig = null;
+		this.jemoServer = null;
 		loadedClasses.clear();
 		adjacentClassLoaderMap.clear();
 		if(localClassList != null) {
@@ -603,5 +616,45 @@ public class JemoClassLoader extends URLClassLoader {
 			
 			return Util.runMethod(jemomodule, Module.class, "getModule");
 		});
+	}
+	
+	public void setApplicationConfiguration(JemoConfig appConfig) {
+		this.appConfig = appConfig;
+	}
+	
+	public JemoConfig getApplicationConfiguration() {
+		return this.appConfig;
+	}
+
+	public int getApplicationId() {
+		return applicationId;
+	}
+
+	public void setApplicationId(int applicationId) {
+		this.applicationId = applicationId;
+	}
+
+	public AbstractJemo getJemoServer() {
+		return jemoServer;
+	}
+
+	public void setJemoServer(AbstractJemo jemoServer) {
+		this.jemoServer = jemoServer;
+	}
+	
+	public double getApplicationVersion() {
+		return this.applicationVersion;
+	}
+	
+	public void setApplicationVersion(double applicationVersion) {
+		this.applicationVersion = applicationVersion;
+	}
+
+	public JemoApplicationMetaData getApplicationMetadata() {
+		return applicationMetadata;
+	}
+
+	public void setApplicationMetadata(JemoApplicationMetaData applicationMetadata) {
+		this.applicationMetadata = applicationMetadata;
 	}
 }

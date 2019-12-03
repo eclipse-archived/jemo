@@ -16,13 +16,28 @@
 ********************************************************************************/
 package org.eclipse.jemo.sys.internal;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.jar.JarInputStream;
+
+import javax.annotation.Priority;
+import javax.enterprise.inject.Any;
+import javax.inject.Inject;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.steadystate.css.util.ThrowCssExceptionErrorHandler;
+
 import static org.junit.Assert.*;
 
 /**
@@ -66,4 +81,69 @@ public class UtilTest {
 		assertFalse(file2.exists());
 	}
 	
+	@Test
+	public void testCreateJar() throws Throwable {
+		final String entryName = "/META-INF/microprofile-config.properties";
+		final Properties propertyFile = new Properties();
+		final ByteArrayOutputStream propertyFileOut = new ByteArrayOutputStream();
+		propertyFile.setProperty("test.key", "value");
+		propertyFile.store(propertyFileOut, "Test Property File");
+		
+		final ByteArrayOutputStream jarOut = new ByteArrayOutputStream();
+		Util.createJar(jarOut, new JarEntry(entryName, new ByteArrayInputStream(propertyFileOut.toByteArray())));
+		
+		//now that we have created the jar we need to verify that our entry is there 
+		//and that the data in the jar entry is correct
+		JarInputStream jarIn = new JarInputStream(new ByteArrayInputStream(jarOut.toByteArray()), false);
+		java.util.jar.JarEntry entry;
+		List<JarEntry> entryList = new ArrayList<>();
+		while((entry = jarIn.getNextJarEntry()) != null) {
+			ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+			Util.stream(byteOut, jarIn, false);
+			entryList.add(new JarEntry(entry.getName(), new ByteArrayInputStream(byteOut.toByteArray())));
+		}
+		assertEquals(1,entryList.size());
+		assertTrue(entryList.stream().anyMatch(e -> e.getEntryName().equals(entryName)));
+		byte[] entryBytes = Util.toByteArray(entryList.get(0).getEntryData());
+		assertArrayEquals(propertyFileOut.toByteArray(), entryBytes);
+		final Properties loadedProperties = new Properties();
+		loadedProperties.load(new ByteArrayInputStream(entryBytes));
+		assertTrue(loadedProperties.containsKey("test.key"));
+		assertEquals("value", loadedProperties.get("test.key"));
+	}
+	
+	private static class ByteClassLoader extends ClassLoader {
+		ByteClassLoader(ClassLoader parent) {
+			super(parent);
+		}
+		
+		public Class getClassFromBytes(String className, byte[] classBytes) throws Throwable {
+			return defineClass(className, classBytes, 0, classBytes.length);
+		}
+	}
+	
+	@Test
+	public void testGetBytesFromClass() throws Throwable {
+		byte[] classBytes = Util.getBytesFromClass(Util.class);
+		Class classFromBytes = new ByteClassLoader(getClass().getClassLoader()).getClassFromBytes(Util.class.getName(), classBytes);
+		assertEquals(Util.class.getName(),  classFromBytes.getName());
+		assertEquals(Util.class.getMethods().length, classFromBytes.getMethods().length);
+	}
+	
+	private static class ClassWithAnnotations {
+		
+		@Inject
+		@Any
+		private String var1 = "a";
+		
+		@Inject
+		private String var2 = "b";
+		
+	}
+	
+	@Test
+	public void test_listFieldsWithAnnotations() throws Throwable {
+		List<Field> fields = Util.listFieldsWithAnnotations(new ClassWithAnnotations(), Inject.class, Any.class);
+		assertEquals(1, fields.size());
+	}
 }

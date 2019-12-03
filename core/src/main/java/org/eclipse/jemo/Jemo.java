@@ -23,6 +23,7 @@ import org.eclipse.jemo.sys.JemoPluginManager;
 import org.eclipse.jemo.sys.JemoQueueListener;
 import org.eclipse.jemo.sys.internal.Util;
 
+import java.util.Properties;
 import java.util.logging.Level;
 
 
@@ -51,6 +52,7 @@ public class Jemo extends AbstractJemo {
     public static String HOSTNAME = null;
     public static JemoPluginManager pluginManager = null;
     public static JemoHTTPConnector httpServer = null;
+    public static String JEMO_VERSION;
 
     public static final JemoQueueListener getInstanceQueueListener() {
         return SERVER_INSTANCE.sys_getInstanceQueueListener();
@@ -63,9 +65,12 @@ public class Jemo extends AbstractJemo {
         GLOBAL_QUEUE_URL = SERVER_INSTANCE.getGLOBAL_QUEUE_URL();
         LOCATION_QUEUE_URL = SERVER_INSTANCE.getLOCATION_QUEUE_URL();
         HOSTNAME = SERVER_INSTANCE.getHOSTNAME();
-        pluginManager = SERVER_INSTANCE.getPluginManager();
+        //pluginManager = SERVER_INSTANCE.getPluginManager(); //we cannot grab a reference to the plugin manager here because we may have not yet setup to the plugin manager
         httpServer = SERVER_INSTANCE.getHttpServer();
 
+        final Properties properties = new Properties();
+        properties.load(Jemo.class.getClassLoader().getResourceAsStream("pom.properties"));
+        JEMO_VERSION = properties.getProperty("jemo.pom.version");
     }
 
     public static final void processMessage(JemoMessage msg) throws Throwable {

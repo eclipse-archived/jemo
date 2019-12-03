@@ -23,6 +23,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import io.kubernetes.client.ApiException;
+import io.kubernetes.client.apis.CoreV1Api;
+import io.kubernetes.client.models.V1LoadBalancerIngress;
+import io.kubernetes.client.models.V1Service;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -37,6 +41,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -59,6 +64,8 @@ public class Util {
     public static final Pattern INT_PATTERN = Pattern.compile("[0-9]+");
     public static final Pattern RANGE_PATTERN = Pattern.compile("([0-9]+)-([0-9]+)");
     public static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
+    
+    private static Consumer<Integer> EXIT_SYSTEM = ((exitCode) -> System.exit(exitCode));
 
     static {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -233,6 +240,14 @@ public class Util {
             throw new RuntimeException(ex);
         }
     }
+    
+    public static <T, P> T I(P param, ManagedFunctionWithException<P, T> consumer) {
+    	try {
+    		return consumer.apply(param);
+    	} catch (Throwable ex) {}
+    	
+    	return null;
+    }
 
     public static final String getTimeString(long elapsedTime) {
         long hours = TimeUnit.HOURS.convert(elapsedTime, TimeUnit.MILLISECONDS);
@@ -292,9 +307,18 @@ public class Util {
             jarOut.flush();
         }
     }
-
-    private static void addClassToJar(JarOutputStream jarOut, Class cls) throws Throwable {
-        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+    
+    public static void createJar(OutputStream out, org.eclipse.jemo.sys.internal.JarEntry... entries) throws Throwable {
+    	try (JarOutputStream jarOut = new JarOutputStream(out)) {
+            for (org.eclipse.jemo.sys.internal.JarEntry entry : entries) {
+                addEntryToJar(jarOut, entry.getEntryName(), toByteArray(entry.getEntryData()));
+            }
+            jarOut.flush();
+        }
+    }
+    
+    public static byte[] getBytesFromClass(Class cls) throws IOException {
+    	ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
         try (InputStream clsIn = cls.getResourceAsStream("/" + cls.getName().replace('.', '/') + ".class")) {
             byte[] buf = new byte[8192];
             int rb = 0;
@@ -302,12 +326,19 @@ public class Util {
                 byteOut.write(buf, 0, rb);
             }
         }
-        byte[] clsBytes = byteOut.toByteArray();
-        JarEntry entry = new JarEntry(cls.getName().replace('.', '/') + ".class");
-        entry.setSize(clsBytes.length);
+        return byteOut.toByteArray();
+    }
+
+    private static void addClassToJar(JarOutputStream jarOut, Class cls) throws Throwable {
+        addEntryToJar(jarOut, cls.getName().replace('.', '/') + ".class", getBytesFromClass(cls));
+    }
+    
+    private static void addEntryToJar(JarOutputStream jarOut, String entryName, byte[] entryBytes) throws IOException {
+    	JarEntry entry = new JarEntry(entryName);
+        entry.setSize(entryBytes.length);
         entry.setTime(System.currentTimeMillis());
         jarOut.putNextEntry(entry);
-        jarOut.write(clsBytes);
+        jarOut.write(entryBytes);
         jarOut.closeEntry();
     }
 
@@ -422,6 +453,24 @@ public class Util {
 
     public static String readParameterFromJvmOrEnv(String name) {
         return readParameterFromJvmOrEnv(name, null);
+    }
+
+    public static String getLoadBalancerUrl(CoreV1Api coreV1Api) throws ApiException {
+        long start = System.currentTimeMillis();
+        long duration;
+        V1Service createdService;
+        do {
+            createdService = coreV1Api.readNamespacedService("jemo", "default", "true", null, null);
+            duration = (System.currentTimeMillis() - start) / 60_000;
+        } while (duration < 3 && isLoadBalancerUrlCreated(createdService));
+
+        final V1LoadBalancerIngress loadBalancerIngress = createdService.getStatus().getLoadBalancer().getIngress().get(0);
+        return "http://" + (loadBalancerIngress.getIp() == null ? loadBalancerIngress.getHostname() : loadBalancerIngress.getIp());
+    }
+
+    private static boolean isLoadBalancerUrlCreated(V1Service createdService) {
+        final List<V1LoadBalancerIngress> ingresses = createdService.getStatus().getLoadBalancer().getIngress();
+        return ingresses == null || (ingresses.get(0).getHostname() == null && ingresses.get(0).getIp() == null);
     }
 
     private static String[] waitAndMonitorProcess(StringBuilder builder, Process process) throws IOException {
@@ -539,4 +588,24 @@ public class Util {
         return properties == null || properties.getProperty(propertyName) == null ? defaultValue : properties.getProperty(propertyName);
     }
 
+    public static void killJVM(int exitCode) {
+    	EXIT_SYSTEM.accept(exitCode);
+    }
+    
+    /**
+     * this method will return a list of all the declared fields in a class or an object instance which 
+     * contains all of the annotations passed in the class list
+     * 
+     * @param instance the class reference or instance of a class
+     * @param annotations the list of annotations the field should have.
+     * @return a list of the fields that contain all of the annotations passed.
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	public static List<Field> listFieldsWithAnnotations(Object instance, Class... annotations) {
+    	List<Class> annotationList = Arrays.asList(annotations);
+    	return Arrays.asList(instance.getClass().getDeclaredFields())
+    		.stream()
+    		.filter(f -> annotationList.stream().allMatch(a -> !Arrays.asList(f.getAnnotationsByType(a)).isEmpty()))
+    		.collect(Collectors.toList());
+    }
 }

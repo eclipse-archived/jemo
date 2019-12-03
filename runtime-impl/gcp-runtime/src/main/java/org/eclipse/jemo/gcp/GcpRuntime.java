@@ -56,6 +56,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.eclipse.jemo.Jemo.JEMO_VERSION;
 import static org.eclipse.jemo.sys.JemoRuntimeSetup.TFVARS_FILE_NAME;
 import static org.eclipse.jemo.sys.internal.Util.*;
 
@@ -896,7 +897,9 @@ public class GcpRuntime implements CloudRuntime {
         applyTemplate(sourceDir, kubernetesDirPath, "credentials.yaml", getClass(), x -> x.replaceAll("_JEMO_USER_CRED_", encodedJemoKeyFileContent));
 
         final String replicas = setupParams.parameters().get("gcp_cluster_count");
-        applyTemplate(sourceDir, kubernetesDirPath, "jemo-statefulset.yaml", getClass(), x -> x.replaceAll("_JEMO_REPLICAS_", replicas).replaceAll("_REGION_", REGION));
+        applyTemplate(sourceDir, kubernetesDirPath, "jemo-statefulset.yaml", getClass(), x -> x.replaceAll("_JEMO_REPLICAS_", replicas)
+                .replaceAll("_REGION_", REGION).replaceAll("_JEMO_VERSION_", JEMO_VERSION)
+        );
 
         return terraformDirPath;
     }

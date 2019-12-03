@@ -18,6 +18,8 @@ package org.eclipse.jemo.internal.model;
 
 import org.eclipse.jemo.Jemo;
 import org.eclipse.jemo.api.Module;
+import org.eclipse.jemo.sys.JemoClassLoader;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,11 +35,13 @@ public class JemoModule {
 	
 	private Module module = null;
 	private ModuleMetaData metaData = null;
+	private JemoClassLoader classLoader = null;
 	protected final Map<String,ScheduledFuture> watchdogList = new ConcurrentHashMap<>();
 	
-	public JemoModule(Module module, ModuleMetaData metaData) {
+	public JemoModule(Module module, ModuleMetaData metaData, JemoClassLoader classLoader) {
 		this.module = module;
 		this.metaData = metaData;
+		this.classLoader = classLoader;
 	}
 
 	public Module getModule() {
@@ -46,6 +50,14 @@ public class JemoModule {
 
 	public ModuleMetaData getMetaData() {
 		return metaData;
+	}
+	
+	public JemoClassLoader getClassLoader() {
+		return classLoader;
+	}
+	
+	public void setClassLoader(JemoClassLoader classLoader) {
+		this.classLoader = classLoader;
 	}
 	
 	public boolean implementsBatch() {

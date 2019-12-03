@@ -155,6 +155,12 @@ public class JemoApplicationMetaData implements SystemDBObject {
     private Set<String> events = new ConcurrentSkipListSet<>();
     private Set<String> batches = new ConcurrentSkipListSet<>();
     private Set<String> fixed = new ConcurrentSkipListSet<>();
+    
+    /**
+     * this will contain the list of classes within this application jar that implement
+     * the microprofile healthcheck interface.
+     */
+    private Set<String> healthchecks = new ConcurrentSkipListSet<>();
     private Map<String, JemoModuleLimits> limits = new ConcurrentHashMap<>();
     private Map<String, Accumulator> stats = new ConcurrentHashMap<>();
 
@@ -254,4 +260,15 @@ public class JemoApplicationMetaData implements SystemDBObject {
     public Map<String, Accumulator> getStats() {
         return stats;
     }
+
+	public Set<String> getHealthchecks() {
+		return healthchecks;
+	}
+
+	public void setHealthchecks(Set<String> healthchecks) {
+		this.healthchecks.clear();
+		this.healthchecks.addAll(healthchecks);
+	}
+    
+    
 }
